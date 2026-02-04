@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/* This is the missing piece that fixes your error */
+@reference "tailwindcss";
+
+@theme {
+    /* Defining your professional skin care palette */
+    --color-skin-primary: #10B981;    /* Emerald 500 */
+    --color-skin-dark: #0F172A;       /* Slate 900 */
+    --color-skin-surface: #F8FAFC;    /* Pearl 50 */
+}
+
+@layer base {
+    body {
+        /* Now Tailwind knows what slate-900 is thanks to the @reference */
+        @apply bg-skin-surface text-slate-900 antialiased;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+}
+
+@layer components {
+    /* Example of smart component styling */
+    .btn-modern {
+        @apply px-6 py-3 rounded-2xl font-bold transition-all duration-300
+        active:scale-95 flex items-center justify-center gap-2;
+    }
+
+    .glass-card {
+        @apply bg-white/80 backdrop-blur-xl border border-white shadow-xl rounded-[2.5rem];
+    }
+}
