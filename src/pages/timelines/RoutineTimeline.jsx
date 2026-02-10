@@ -616,6 +616,58 @@ export default function RoutineTimeline({ isDark }) {
                 </div>
             )}
 
+            {/* --- FULL-SCREEN FINGERPRINT ALARM UI --- */}
+            {activeAlarm && (
+                <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in duration-500">
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-2xl" />
+
+                    <div className="absolute w-[300px] h-[300px] bg-emerald-500/20 rounded-full blur-[100px] animate-pulse" />
+
+                    <div className="relative flex flex-col items-center text-center">
+                        {/* Fingerprint එක click කළත් alarm එක නතර වේ */}
+                        <div className="relative mb-12 group cursor-pointer" onClick={stopAlarm}>
+                            <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-all animate-ping" />
+                            <div className="w-32 h-32 rounded-full border-2 border-emerald-500/50 flex items-center justify-center bg-black/40 backdrop-blur-md relative overflow-hidden">
+                                <Fingerprint size={64} className="text-emerald-500 animate-pulse" />
+                                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)] animate-scan-line" />
+                            </div>
+                        </div>
+
+                        <h2 className="text-4xl font-black italic uppercase text-white mb-2 tracking-tighter">
+                            Time to <span className="text-emerald-500">Ready</span> Routines
+                        </h2>
+
+                        <div className="flex items-center gap-3 px-6 py-2 bg-white/5 rounded-full border border-white/10 mb-8">
+                            <Zap size={16} className="text-emerald-500" />
+                            <p className="text-sm font-black uppercase italic text-emerald-100">
+                                {activeAlarm.name} • {activeAlarm.time}
+                            </p>
+                        </div>
+
+                        {/* මෙම බොත්තම click කළ විට stopAlarm function එක හරහා alarm එක නතර වේ */}
+                        <button
+                            onClick={stopAlarm}
+                            className="px-12 py-5 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase text-xs tracking-[0.2em] rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                        >
+                            Confirm Identity & Stop
+                        </button>
+                    </div>
+
+                    <style>{`
+            @keyframes scan-line {
+                0% { top: 0%; opacity: 0; }
+                50% { opacity: 1; }
+                100% { top: 100%; opacity: 0; }
+            }
+            .animate-scan-line {
+                position: absolute;
+                animation: scan-line 2s linear infinite;
+            }
+        `}</style>
+                </div>
+            )}
+
+
             {/* PRODUCT EDIT/ADD MODAL */}
             {modal.open && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-6 animate-in fade-in duration-300">
