@@ -66,7 +66,8 @@ export default function AppointmentHub({ isDark }) {
 
     // --- ADMIN CHECK LOGIC ---
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    const isMainAdmin = currentUser?.email === 'admin@glowcare.ai';
+    // checks if a user is logged in AND if that user is the admin
+    const isMainAdmin = currentUser && currentUser.email === 'admin@glowcare.ai';
 
     // --- CRUD STATES ---
     const [hospitals, setHospitals] = useState([
@@ -114,7 +115,7 @@ export default function AppointmentHub({ isDark }) {
     // --- CRUD FUNCTIONS ---
     const handleAddDoctor = (e) => {
         e.preventDefault();
-        if (!activeHospital) return;
+        if (!activeHospital || !isMainAdmin) return;
         const newDoc = {
             id: "D" + Date.now(),
             name: newDoctorData.name,
@@ -137,6 +138,7 @@ export default function AppointmentHub({ isDark }) {
 
     const deleteDoctor = (e, docId) => {
         e.stopPropagation();
+        if (!isMainAdmin) return;
         const updatedHospitals = hospitals.map(h => {
             if (h.id === activeHospital.id) {
                 const filteredDocs = h.doctors.filter(d => d.id !== docId);
@@ -151,12 +153,14 @@ export default function AppointmentHub({ isDark }) {
 
     const openEditModal = (e, doc) => {
         e.stopPropagation();
+        if (!isMainAdmin) return;
         setEditingDoctor({ ...doc, availableStr: doc.available.join(', ') });
         setIsEditModalOpen(true);
     };
 
     const saveUpdatedDoctor = (e) => {
         e.preventDefault();
+        if (!isMainAdmin) return;
         const updatedHospitals = hospitals.map(h => {
             if (h.id === activeHospital.id) {
                 const updatedDocs = h.doctors.map(d => d.id === editingDoctor.id ? {
@@ -386,7 +390,7 @@ export default function AppointmentHub({ isDark }) {
                                         </div>
                                         <h2 className="text-xl font-black tracking-tight italic uppercase">{activeHospital.name}</h2>
                                     </div>
-                                    {/* --- ADD DOCTOR: ONLY FOR ADMIN --- */}
+                                    {/* --- ADD DOCTOR: ONLY FOR LOGGED IN ADMIN --- */}
                                     {isMainAdmin && (
                                         <button
                                             onClick={() => setIsAddModalOpen(true)}
@@ -412,7 +416,7 @@ export default function AppointmentHub({ isDark }) {
                                                     <Activity size={20} />
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {/* --- EDIT/DELETE: ONLY FOR ADMIN --- */}
+                                                    {/* --- EDIT/DELETE: ONLY FOR LOGGED IN ADMIN --- */}
                                                     {isMainAdmin && (
                                                         <>
                                                             <button onClick={(e) => openEditModal(e, doc)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/></button>
