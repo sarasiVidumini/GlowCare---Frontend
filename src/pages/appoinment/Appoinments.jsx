@@ -64,6 +64,10 @@ export default function AppointmentHub({ isDark }) {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [bookingStatus, setBookingStatus] = useState('idle');
 
+    // --- ADMIN CHECK LOGIC ---
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const isMainAdmin = currentUser?.email === 'admin@glowcare.ai';
+
     // --- CRUD STATES ---
     const [hospitals, setHospitals] = useState([
         {
@@ -177,7 +181,6 @@ export default function AppointmentHub({ isDark }) {
                 map.panTo(location);
                 map.setZoom(15);
 
-                // Service eka bawitha kara hospital search kirima
                 const service = new window.google.maps.places.PlacesService(map);
                 const request = {
                     location: location,
@@ -194,7 +197,6 @@ export default function AppointmentHub({ isDark }) {
                                 lat: h.geometry.location.lat(),
                                 lng: h.geometry.location.lng()
                             },
-                            // Auto-generated skin specialists for discovered hospitals
                             doctors: [
                                 { id: `D-Auto-1-${index}`, name: "Dr. Premasiri Koralage", focus: "Skin Care Specialist", available: ["Mon", "Wed", "Sat"], rating: 4.9 },
                                 { id: `D-Auto-2-${index}`, name: "Dr. Sudath Samaraweera", focus: "Consultant Dermatologist", available: ["Tue", "Fri"], rating: 4.7 }
@@ -384,12 +386,15 @@ export default function AppointmentHub({ isDark }) {
                                         </div>
                                         <h2 className="text-xl font-black tracking-tight italic uppercase">{activeHospital.name}</h2>
                                     </div>
-                                    <button
-                                        onClick={() => setIsAddModalOpen(true)}
-                                        className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
-                                    >
-                                        <Plus size={14}/> Add Doctor
-                                    </button>
+                                    {/* --- ADD DOCTOR: ONLY FOR ADMIN --- */}
+                                    {isMainAdmin && (
+                                        <button
+                                            onClick={() => setIsAddModalOpen(true)}
+                                            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                                        >
+                                            <Plus size={14}/> Add Doctor
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {activeHospital.doctors.map(doc => (
@@ -407,8 +412,13 @@ export default function AppointmentHub({ isDark }) {
                                                     <Activity size={20} />
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <button onClick={(e) => openEditModal(e, doc)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/></button>
-                                                    <button onClick={(e) => deleteDoctor(e, doc.id)} className="p-2 bg-rose-500/10 text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button>
+                                                    {/* --- EDIT/DELETE: ONLY FOR ADMIN --- */}
+                                                    {isMainAdmin && (
+                                                        <>
+                                                            <button onClick={(e) => openEditModal(e, doc)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/></button>
+                                                            <button onClick={(e) => deleteDoctor(e, doc.id)} className="p-2 bg-rose-500/10 text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button>
+                                                        </>
+                                                    )}
                                                     <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[9px] font-black italic h-fit">
                                                         <Star size={10} fill="white"/> {doc.rating}
                                                     </div>

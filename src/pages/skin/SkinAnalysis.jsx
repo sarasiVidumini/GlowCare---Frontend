@@ -127,13 +127,6 @@ export default function SmartAnalysis({ isDark }) {
             {/* Left Panel */}
             <div className={`lg:w-[320px] border-r p-8 flex flex-col justify-between transition-all duration-700 relative z-10 ${isDark ? 'bg-[#0A0A0B]/80 border-white/5 backdrop-blur-2xl' : 'bg-white/80 border-slate-100 backdrop-blur-2xl'}`}>
                 <div className="space-y-12">
-                    <div className="flex items-center gap-3 font-black text-xl tracking-tighter">
-                        <div className={`p-1.5 rounded-lg ${isDark ? 'bg-emerald-500 text-black' : 'bg-slate-900 text-white'}`}>
-                            <Fingerprint size={20} strokeWidth={3} />
-                        </div>
-                        <span className="uppercase tracking-tighter italic">GLOW<span className="text-emerald-500">CARE</span></span>
-                    </div>
-
                     <div className="space-y-8">
                         <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full animate-pulse ${isDark ? 'bg-emerald-400' : 'bg-emerald-600'}`} />

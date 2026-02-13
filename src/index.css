@@ -28,4 +28,21 @@
     .glass-card {
         @apply bg-white/80 backdrop-blur-xl border border-white shadow-xl rounded-[2.5rem];
     }
+
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .animate-gradient {
+        background-size: 200% auto;
+        animation: gradient 3s ease infinite;
+    }
+    .animate-bounce-slow {
+        animation: bounce 3s infinite;
+    }
+    .vertical-text {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+    }
 }
