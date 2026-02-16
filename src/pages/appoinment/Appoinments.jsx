@@ -64,11 +64,21 @@ export default function AppointmentHub({ isDark }) {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [bookingStatus, setBookingStatus] = useState('idle');
 
-    // --- UPDATED ADMIN CHECK LOGIC ---
-    // User කෙනෙක් ඇතුළත් වී නැති නම් (null) හෝ email එක වෙනස් නම් isMainAdmin 'false' වේ.
-    const storedUser = localStorage.getItem('currentUser');
-    const currentUser = storedUser ? JSON.parse(storedUser) : null;
-    const isMainAdmin = currentUser && currentUser.email === 'admin@glowcare.ai';
+    // --- UPDATED ADMIN CHECK LOGIC WITH STATE ---
+    const [isMainAdmin, setIsMainAdmin] = useState(false);
+
+    useEffect(() => {
+        const checkAdmin = () => {
+            const storedUser = localStorage.getItem('currentUser');
+            const currentUser = storedUser ? JSON.parse(storedUser) : null;
+            setIsMainAdmin(currentUser && currentUser.email === 'admin@glowcare.ai');
+        };
+
+        checkAdmin();
+        // ලොගවුට් වූ සැණින් වෙනස්කම් හඳුනා ගැනීමට listener එකක්
+        window.addEventListener('storage', checkAdmin);
+        return () => window.removeEventListener('storage', checkAdmin);
+    }, []);
 
     // --- CRUD STATES ---
     const [hospitals, setHospitals] = useState([
@@ -243,7 +253,7 @@ export default function AppointmentHub({ isDark }) {
             <FallingLeaves isDark={isDark} />
 
             {/* --- ADD DOCTOR MODAL --- */}
-            {isAddModalOpen && (
+            {isAddModalOpen && isMainAdmin && (
                 <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className={`w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl ${isDark ? 'bg-[#0F0F12] border border-white/10' : 'bg-white'}`}>
                         <div className="flex justify-between items-center mb-6">
@@ -270,7 +280,7 @@ export default function AppointmentHub({ isDark }) {
             )}
 
             {/* --- UPDATE MODAL --- */}
-            {isEditModalOpen && (
+            {isEditModalOpen && isMainAdmin && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className={`w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl ${isDark ? 'bg-[#0F0F12] border border-white/10' : 'bg-white'}`}>
                         <div className="flex justify-between items-center mb-6">
@@ -363,7 +373,6 @@ export default function AppointmentHub({ isDark }) {
                                         </div>
                                         <h2 className="text-xl font-black tracking-tight italic uppercase">{activeHospital.name}</h2>
                                     </div>
-                                    {/* --- ADD DOCTOR: පෙන්වන්නේ Admin ලොග් වී ඇත්නම් පමණි --- */}
                                     {isMainAdmin && (
                                         <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95">
                                             <Plus size={14}/> Add Doctor
@@ -386,7 +395,6 @@ export default function AppointmentHub({ isDark }) {
                                                     <Activity size={20} />
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {/* --- EDIT/DELETE: පෙන්වන්නේ Admin ලොග් වී ඇත්නම් පමණි --- */}
                                                     {isMainAdmin && (
                                                         <>
                                                             <button onClick={(e) => openEditModal(e, doc)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/></button>
