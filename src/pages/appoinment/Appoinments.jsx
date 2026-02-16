@@ -64,9 +64,10 @@ export default function AppointmentHub({ isDark }) {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [bookingStatus, setBookingStatus] = useState('idle');
 
-    // --- ADMIN CHECK LOGIC ---
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    // checks if a user is logged in AND if that user is the admin
+    // --- UPDATED ADMIN CHECK LOGIC ---
+    // User කෙනෙක් ඇතුළත් වී නැති නම් (null) හෝ email එක වෙනස් නම් isMainAdmin 'false' වේ.
+    const storedUser = localStorage.getItem('currentUser');
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
     const isMainAdmin = currentUser && currentUser.email === 'admin@glowcare.ai';
 
     // --- CRUD STATES ---
@@ -176,7 +177,6 @@ export default function AppointmentHub({ isDark }) {
         setIsEditModalOpen(false);
     };
 
-    // --- UPDATED SEARCH LOGIC WITH AUTO-HOSPITAL DISCOVERY ---
     const onPlaceChanged = () => {
         if (autocomplete !== null) {
             const place = autocomplete.getPlace();
@@ -217,7 +217,6 @@ export default function AppointmentHub({ isDark }) {
 
     const handleBooking = async (e) => {
         e.preventDefault();
-
         const dateTimeValue = e.target.datetime.value;
         const reasonValue = e.target.reason.value;
         const date = new Date(dateTimeValue);
@@ -235,10 +234,7 @@ export default function AppointmentHub({ isDark }) {
             reason: reasonValue,
             status: 'PENDING'
         };
-
-        console.log("Booking Data Prepared:", bookingData);
         setBookingStatus('success');
-
     };
 
     return (
@@ -284,27 +280,15 @@ export default function AppointmentHub({ isDark }) {
                         <form onSubmit={saveUpdatedDoctor} className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold uppercase opacity-50 ml-2">Full Name</label>
-                                <input
-                                    value={editingDoctor.name}
-                                    onChange={(e) => setEditingDoctor({...editingDoctor, name: e.target.value})}
-                                    className={`w-full p-4 rounded-xl outline-none font-bold ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}
-                                />
+                                <input value={editingDoctor.name} onChange={(e) => setEditingDoctor({...editingDoctor, name: e.target.value})} className={`w-full p-4 rounded-xl outline-none font-bold ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`} />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold uppercase opacity-50 ml-2">Specialization</label>
-                                <input
-                                    value={editingDoctor.focus}
-                                    onChange={(e) => setEditingDoctor({...editingDoctor, focus: e.target.value})}
-                                    className={`w-full p-4 rounded-xl outline-none font-bold ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}
-                                />
+                                <input value={editingDoctor.focus} onChange={(e) => setEditingDoctor({...editingDoctor, focus: e.target.value})} className={`w-full p-4 rounded-xl outline-none font-bold ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`} />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold uppercase opacity-50 ml-2">Available Dates</label>
-                                <input
-                                    value={editingDoctor.availableStr}
-                                    onChange={(e) => setEditingDoctor({...editingDoctor, availableStr: e.target.value})}
-                                    className={`w-full p-4 rounded-xl outline-none font-bold ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}
-                                />
+                                <input value={editingDoctor.availableStr} onChange={(e) => setEditingDoctor({...editingDoctor, availableStr: e.target.value})} className={`w-full p-4 rounded-xl outline-none font-bold ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`} />
                             </div>
                             <button type="submit" className="w-full bg-emerald-500 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px]">Update Registry</button>
                         </form>
@@ -313,7 +297,6 @@ export default function AppointmentHub({ isDark }) {
             )}
 
             <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-                {/* BRAND HEADER */}
                 <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
                     <div className="border-l-4 border-emerald-500 pl-6">
                         <div className="flex items-center gap-2 mb-1">
@@ -327,11 +310,7 @@ export default function AppointmentHub({ isDark }) {
                         {isLoaded && (
                             <Autocomplete onLoad={setAutocomplete} onPlaceChanged={onPlaceChanged}>
                                 <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Search area (e.g. Colombo, Galle)..."
-                                        className={`relative w-full p-4 pl-12 rounded-2xl outline-none font-bold text-sm transition-all border ${isDark ? 'bg-[#0F0F12] border-white/5 text-white' : 'bg-white border-slate-100 shadow-lg shadow-slate-200/40'}`}
-                                    />
+                                    <input type="text" placeholder="Search area (e.g. Colombo, Galle)..." className={`relative w-full p-4 pl-12 rounded-2xl outline-none font-bold text-sm transition-all border ${isDark ? 'bg-[#0F0F12] border-white/5 text-white' : 'bg-white border-slate-100 shadow-lg shadow-slate-200/40'}`} />
                                     <Search className="absolute left-4 top-4 text-emerald-500" size={18} />
                                 </div>
                             </Autocomplete>
@@ -339,7 +318,6 @@ export default function AppointmentHub({ isDark }) {
                     </div>
                 </div>
 
-                {/* INSTRUCTIONAL BANNER */}
                 <div className={`mb-8 p-6 rounded-[2rem] border flex items-center gap-6 transition-all relative overflow-hidden ${isDark ? 'bg-rose-500/10 border-rose-500/10' : 'bg-rose-50 border-rose-100'}`}>
                     <div className="bg-rose-500 p-3 rounded-xl shadow-lg animate-pulse relative z-10">
                         <Info className="text-white" size={20} />
@@ -351,7 +329,6 @@ export default function AppointmentHub({ isDark }) {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* LEFT: MAP & DOCTORS */}
                     <div className="lg:col-span-7 space-y-8">
                         <div className={`h-[420px] rounded-[2.5rem] shadow-xl border overflow-hidden relative ${isDark ? 'border-white/5 bg-[#0A0A0B]' : 'border-slate-50 bg-white shadow-slate-200/50'}`}>
                             {isLoaded ? (
@@ -360,11 +337,7 @@ export default function AppointmentHub({ isDark }) {
                                     mapContainerStyle={{ width: '100%', height: '100%' }}
                                     center={{ lat: 6.9271, lng: 79.8612 }}
                                     zoom={13}
-                                    options={{
-                                        styles: isDark ? darkMapStyle : [],
-                                        disableDefaultUI: true,
-                                        zoomControl: true
-                                    }}
+                                    options={{ styles: isDark ? darkMapStyle : [], disableDefaultUI: true, zoomControl: true }}
                                 >
                                     {hospitals.map(hosp => (
                                         <Marker
@@ -390,12 +363,9 @@ export default function AppointmentHub({ isDark }) {
                                         </div>
                                         <h2 className="text-xl font-black tracking-tight italic uppercase">{activeHospital.name}</h2>
                                     </div>
-                                    {/* --- ADD DOCTOR: ONLY FOR LOGGED IN ADMIN --- */}
+                                    {/* --- ADD DOCTOR: පෙන්වන්නේ Admin ලොග් වී ඇත්නම් පමණි --- */}
                                     {isMainAdmin && (
-                                        <button
-                                            onClick={() => setIsAddModalOpen(true)}
-                                            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
-                                        >
+                                        <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95">
                                             <Plus size={14}/> Add Doctor
                                         </button>
                                     )}
@@ -416,7 +386,7 @@ export default function AppointmentHub({ isDark }) {
                                                     <Activity size={20} />
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {/* --- EDIT/DELETE: ONLY FOR LOGGED IN ADMIN --- */}
+                                                    {/* --- EDIT/DELETE: පෙන්වන්නේ Admin ලොග් වී ඇත්නම් පමණි --- */}
                                                     {isMainAdmin && (
                                                         <>
                                                             <button onClick={(e) => openEditModal(e, doc)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/></button>
@@ -440,7 +410,6 @@ export default function AppointmentHub({ isDark }) {
                         )}
                     </div>
 
-                    {/* RIGHT: SMART BOOKING PANEL */}
                     <div className="lg:col-span-5 relative">
                         <div className={`rounded-[2.5rem] p-8 sticky top-6 border backdrop-blur-3xl transition-all ${isDark ? 'bg-[#0A0A0B]/80 border-white/5 shadow-2xl' : 'bg-white/80 border-slate-100 shadow-xl'}`}>
                             {bookingStatus === 'success' ? (
@@ -458,7 +427,6 @@ export default function AppointmentHub({ isDark }) {
                                         <Calendar className="text-blue-500" size={22} />
                                         <h3 className="text-lg font-black uppercase italic tracking-tighter">Clinical Access</h3>
                                     </div>
-
                                     {!selectedDoctor ? (
                                         <div className={`py-20 text-center border-2 border-dashed rounded-[2rem] ${isDark ? 'bg-white/[0.02] border-white/5 text-slate-700' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
                                             <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">Touch Red Markers <br/>to select Specialist</p>
@@ -472,34 +440,17 @@ export default function AppointmentHub({ isDark }) {
                                                 </div>
                                                 <ShieldCheck className="absolute -right-4 -bottom-4 text-white/10" size={100} />
                                             </div>
-
                                             <div className="space-y-6">
-                                                {/* Date Time Field */}
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2">Slot Datetime</label>
-                                                    <input
-                                                        name="datetime"
-                                                        type="datetime-local"
-                                                        required
-                                                        className={`w-full p-4 rounded-xl outline-none font-bold text-sm ${isDark ? 'bg-white/5 border border-white/5 text-white' : 'bg-slate-50 border border-slate-100'}`}
-                                                    />
+                                                    <input name="datetime" type="datetime-local" required className={`w-full p-4 rounded-xl outline-none font-bold text-sm ${isDark ? 'bg-white/5 border border-white/5 text-white' : 'bg-slate-50 border border-slate-100'}`} />
                                                 </div>
-
-                                                {/* Reason for Visit Field (New) */}
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2">Reason for Visit</label>
-                                                    <textarea
-                                                        name="reason"
-                                                        placeholder="Briefly describe your skin concern..."
-                                                        rows="3"
-                                                        className={`w-full p-4 rounded-xl outline-none font-bold text-sm resize-none transition-all ${isDark ? 'bg-white/5 border border-white/5 text-white focus:border-emerald-500/50' : 'bg-slate-50 border border-slate-100 focus:border-emerald-200 shadow-inner'}`}
-                                                    ></textarea>
+                                                    <textarea name="reason" placeholder="Briefly describe your skin concern..." rows="3" className={`w-full p-4 rounded-xl outline-none font-bold text-sm resize-none transition-all ${isDark ? 'bg-white/5 border border-white/5 text-white focus:border-emerald-500/50' : 'bg-slate-50 border border-slate-100 focus:border-emerald-200 shadow-inner'}`}></textarea>
                                                 </div>
                                             </div>
-
-                                            <button type="submit" className="w-full bg-blue-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.3em] text-[9px] hover:bg-blue-500 shadow-lg active:scale-95 transition-all">
-                                                Confirm Clinical Slot
-                                            </button>
+                                            <button type="submit" className="w-full bg-blue-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.3em] text-[9px] hover:bg-blue-500 shadow-lg active:scale-95 transition-all">Confirm Clinical Slot</button>
                                         </>
                                     )}
                                 </form>

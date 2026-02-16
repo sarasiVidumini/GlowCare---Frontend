@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Activity, Leaf, Zap, CheckCircle2, ArrowRight, ThermometerSun } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // useNavigate එක් කළා
 import SignUpModal from './../auth/SignUp.jsx';
 import SignInModal from './../auth/SignInModal.jsx';
 
@@ -32,10 +33,10 @@ const FallingLeaves = ({ isDark }) => {
     );
 };
 
-// props හරහා onLoginSuccess ලබා ගන්නවා
 export default function Home({ isDark, onLoginSuccess }) {
     const [isSignUpOpen, setIsSignUpOpen] = useState(false);
     const [isSignInOpen, setIsSignInOpen] = useState(false);
+    const navigate = useNavigate(); // Navigation සඳහා
 
     return (
         <div className={`relative min-h-screen transition-all duration-1000 selection:bg-emerald-500/30 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FAFAFA] text-slate-900'}`}>
@@ -50,7 +51,7 @@ export default function Home({ isDark, onLoginSuccess }) {
                 <SignInModal
                     isDark={isDark}
                     onClose={() => setIsSignInOpen(false)}
-                    onLoginSuccess={onLoginSuccess} // මෙතනින් තමයි logic එක සම්බන්ධ වෙන්නේ
+                    onLoginSuccess={onLoginSuccess}
                 />
             )}
 
@@ -81,11 +82,12 @@ export default function Home({ isDark, onLoginSuccess }) {
                                 Get Started <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                             </button>
 
+                            {/* මෙතන නම වෙනස් කරලා අලුත් Page එකට link කළා */}
                             <button
-                                onClick={() => setIsSignInOpen(true)}
+                                onClick={() => navigate('/prediction')}
                                 className={`px-8 py-4 rounded-2xl font-bold border transition-all flex items-center justify-center gap-3 active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-200 hover:bg-slate-50 text-slate-900'}`}
                             >
-                                <Activity size={18} className="text-emerald-500" /> Start Analysis
+                                <Zap size={18} className="text-emerald-500" /> Predict My Glow
                             </button>
                         </div>
                     </div>
@@ -115,15 +117,16 @@ export default function Home({ isDark, onLoginSuccess }) {
                     <p className="text-xs opacity-60 leading-relaxed mb-4">Your routine updates with Colombo's UV/Humidity index.</p>
                 </div>
 
+                {/* මේ බෙන්ටෝ ග්‍රිඩ් එකේ බට්න් එකත් වෙනස් කළා */}
                 <button
-                    onClick={() => setIsSignInOpen(true)}
+                    onClick={() => navigate('/prediction')}
                     className={`md:col-span-2 group relative overflow-hidden rounded-[35px] p-10 transition-all hover:shadow-2xl text-left ${isDark ? 'bg-blue-600' : 'bg-slate-900'} text-white`}
                 >
                     <div className="relative z-10 h-full flex flex-col justify-between">
-                        <Activity className="text-emerald-400 mb-6" size={36} />
+                        <Zap className="text-emerald-400 mb-6" size={36} />
                         <div>
-                            <h2 className="text-2xl font-extrabold mb-1 tracking-tight">Precision Analysis</h2>
-                            <p className="text-blue-100/70 text-xs max-w-sm">Comparing your skin against 5000+ local sensitivity profiles.</p>
+                            <h2 className="text-2xl font-extrabold mb-1 tracking-tight">Predict My Glow</h2>
+                            <p className="text-blue-100/70 text-xs max-w-sm">Visualizing your 180-day transformation using AI-driven clinical data.</p>
                         </div>
                     </div>
                     <div className="absolute top-8 right-8 bg-white/10 p-2.5 rounded-full backdrop-blur-md group-hover:bg-emerald-500 transition-colors">

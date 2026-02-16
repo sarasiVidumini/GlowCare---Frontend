@@ -105,7 +105,7 @@ export default function RoutineTimeline({ isDark }) {
     const [editModal, setEditModal] = useState({ open: false, id: null, text: "" });
     const [messages, setMessages] = useState([
         { id: 1, user: "Admin", text: "Welcome to the GlowCare Report Feed! Share your progress. ✨", isAdmin: true, time: "10:00 AM" },
-        { id: 2, user: "User_42", text: "The Honey Cleanser works amazing on my dry skin! 🍯", isAdmin: false, time: "10:05 AM" }
+        { id: 2, user: "User_1", text: "The Honey Cleanser works amazing on my dry skin! 🍯", isAdmin: false, time: "10:05 AM" }
     ]);
 
     const sendChatMessage = () => {

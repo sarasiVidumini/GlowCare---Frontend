@@ -7,8 +7,8 @@ import AppRoute from './routes/AppRoutes.jsx';
 function App() {
     const [isDark, setIsDark] = useState(false);
     const [user, setUser] = useState(null);
+    const [isSignInOpen, setIsSignInOpen] = useState(false); // අලුතින් එක් කළා
 
-    // Refresh කළත් ලොග් වුණු කෙනාව මතක තබා ගැනීමට
     useEffect(() => {
         const loggedInUser = localStorage.getItem('activeUser');
         if (loggedInUser) {
@@ -18,11 +18,11 @@ function App() {
 
     const toggleTheme = () => setIsDark(!isDark);
 
-    // Login සාර්ථක වූ විට Navbar එක Update කිරීමට
     const handleLoginSuccess = (userData) => {
         console.log("Logged in User: ", userData);
         setUser(userData);
         localStorage.setItem('activeUser', JSON.stringify(userData));
+        setIsSignInOpen(false); // ලොග් වූ පසු ක්ලෝස් කරන්න
     };
 
     const handleLogout = () => {
@@ -43,6 +43,7 @@ function App() {
                     toggleTheme={toggleTheme}
                     user={user}
                     onLogout={handleLogout}
+                    onSignInClick={() => setIsSignInOpen(true)} // Navbar එකට ෆන්ක්ෂන් එක දුන්නා
                 />
 
                 <main className="flex-grow">
@@ -51,6 +52,8 @@ function App() {
                         toggleTheme={toggleTheme}
                         onLoginSuccess={handleLoginSuccess}
                         user={user}
+                        isSignInOpen={isSignInOpen} // අලුතින් එක් කළා
+                        setIsSignInOpen={setIsSignInOpen} // අලුතින් එක් කළා
                     />
                 </main>
 
