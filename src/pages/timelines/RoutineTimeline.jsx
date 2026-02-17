@@ -112,9 +112,9 @@ export default function RoutineTimeline({ isDark }) {
         if (!chatMsg.trim()) return;
         const newMessage = {
             id: Date.now(),
-            user: "Admin",
+            user: isAdmin ? "Admin" : (activeUser?.name || "GlowUser"),
             text: chatMsg,
-            isAdmin: true,
+            isAdmin: isAdmin,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setMessages([...messages, newMessage]);
@@ -170,7 +170,7 @@ export default function RoutineTimeline({ isDark }) {
     const [pEditModal, setPEditModal] = useState({ open: false, id: null, text: "" });
 
     const openPrivateChat = (expert) => {
-        setPrivateChat({ ...privateChat, open: true, expert: expert });
+        setPrivateChat({ ...privateChat, open: true, expert: expert, messages: [] });
     };
 
     const sendPrivateMessage = () => {
@@ -188,7 +188,12 @@ export default function RoutineTimeline({ isDark }) {
         setPrivateChat(prev => ({ ...prev, messages: prev.messages.filter(m => m.id !== id) }));
     };
 
+    const openPrivateEdit = (id, text) => {
+        setPEditModal({ open: true, id, text });
+    };
+
     const savePrivateEdit = () => {
+        if (!pEditModal.text.trim()) return;
         setPrivateChat(prev => ({
             ...prev,
             messages: prev.messages.map(m => m.id === pEditModal.id ? { ...m, text: pEditModal.text } : m)
@@ -239,12 +244,6 @@ export default function RoutineTimeline({ isDark }) {
         }, 1000);
         return () => clearInterval(checkRoutines);
     }, [notifEnabled, db, path, activeAlarm]);
-
-    const stopAlarm = () => {
-        setActiveAlarm(null);
-        alarmAudio.current.pause();
-        alarmAudio.current.currentTime = 0;
-    };
 
     const handleBellClick = () => {
         if (!notifEnabled) {
@@ -319,14 +318,14 @@ export default function RoutineTimeline({ isDark }) {
                     <div className={`rounded-[2.5rem] p-8 backdrop-blur-xl ${isDark ? 'bg-[#0F0F12]/80' : 'bg-white shadow-xl shadow-slate-200/50'}`}>
                         <div className="flex gap-3 mb-10">
                             <div className={`p-2 rounded-xl ${isDark ? 'bg-emerald-500 text-black' : 'bg-slate-900 text-white'}`}><Fingerprint size={20} /></div>
-                            <button onClick={handleBellClick} className={`p-2 rounded-xl  transition-all ${notifEnabled ? 'bg-emerald-500/20 text-emerald-500' : 'bg-white/5  text-slate-500'}`}>
+                            <button onClick={handleBellClick} className={`p-2 rounded-xl transition-all ${notifEnabled ? 'bg-emerald-500/20 text-emerald-500' : 'bg-white/5 text-slate-500'}`}>
                                 {notifEnabled ? <Bell size={20} className="animate-wiggle" /> : <BellOff size={20} />}
                             </button>
-                            <button onClick={() => setShowChat(true)} className="p-2 rounded-xl  bg-emerald-500/10 text-emerald-500"><MessageSquare size={20} /></button>
+                            <button onClick={() => setShowChat(true)} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500"><MessageSquare size={20} /></button>
                         </div>
                         <div className="flex flex-wrap gap-2 mb-4">
                             {['Natural', 'Chemical', 'Ayurvedic'].map(p => (
-                                <button key={p} onClick={() => setPath(p)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase  transition-all ${path === p ? 'bg-emerald-500 text-black' : 'text-slate-500'}`}>{p}</button>
+                                <button key={p} onClick={() => setPath(p)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${path === p ? 'bg-emerald-500 text-black' : 'text-slate-500'}`}>{p}</button>
                             ))}
                         </div>
                         <h2 className="text-4xl font-black italic uppercase leading-none">{part} <br/><span className="text-emerald-500">Timeline.</span></h2>
@@ -341,7 +340,7 @@ export default function RoutineTimeline({ isDark }) {
                     </div>
                 </div>
 
-                <div className={`col-span-12 lg:col-span-8 rounded-[2.5rem] p-8  backdrop-blur-xl ${isDark ? 'bg-[#0F0F12]/80' : 'bg-white shadow-xl'}`}>
+                <div className={`col-span-12 lg:col-span-8 rounded-[2.5rem] p-8 backdrop-blur-xl ${isDark ? 'bg-[#0F0F12]/80' : 'bg-white shadow-xl'}`}>
                     <header className="flex justify-between items-center mb-10">
                         <div className={`flex p-1 rounded-2xl ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
                             {['morning', 'night'].map(t => (
@@ -349,10 +348,7 @@ export default function RoutineTimeline({ isDark }) {
                             ))}
                         </div>
                         {isAdmin && (
-                            <button
-                                onClick={() => setModal({ open: true, type: 'add', index: null, value: "", stepTime: "" })}
-                                className="flex items-center gap-2 p-3 bg-emerald-600 rounded-xl text-white px-5 font-black uppercase text-[10px] active:scale-95 transition-all shadow-lg shadow-emerald-900/20"
-                            >
+                            <button onClick={() => setModal({ open: true, type: 'add', index: null, value: "", stepTime: "" })} className="flex items-center gap-2 p-3 bg-emerald-600 rounded-xl text-white px-5 font-black uppercase text-[10px] active:scale-95 transition-all shadow-lg shadow-emerald-900/20">
                                 <Plus size={14} strokeWidth={3} /> ADD FORMULA
                             </button>
                         )}
@@ -376,7 +372,7 @@ export default function RoutineTimeline({ isDark }) {
                 </div>
 
                 <div className="col-span-12 flex gap-4 overflow-x-auto pb-6 no-scrollbar">
-                    {['Face', 'Hair', 'Hands', 'Legs'].map(p => (
+                    {['Face', 'Hair', 'Hands', 'Leg'].map(p => (
                         <button key={p} onClick={() => setPart(p)} className={`flex-none px-12 py-6 rounded-[2.2rem] border font-black uppercase text-[10px] transition-all ${part === p ? 'bg-emerald-500 text-black' : 'bg-white/5 text-slate-500'}`}>{p} focus</button>
                     ))}
                 </div>
@@ -400,9 +396,9 @@ export default function RoutineTimeline({ isDark }) {
                                         </div>
                                         <p className="text-sm font-bold">{msg.text}</p>
                                         <div className={`absolute top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all ${msg.isAdmin ? '-left-12' : '-right-12'}`}>
-                                            <button onClick={() => copyMessage(msg.text)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all"><Copy size={14}/></button>
-                                            <button onClick={() => openEditModal(msg.id, msg.text)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all"><Edit3 size={14}/></button>
-                                            <button onClick={() => deleteMessage(msg.id)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={14}/></button>
+                                            <button onClick={() => copyMessage(msg.text)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all backdrop-blur-md"><Copy size={14}/></button>
+                                            <button onClick={() => openEditModal(msg.id, msg.text)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all backdrop-blur-md"><Edit3 size={14}/></button>
+                                            <button onClick={() => deleteMessage(msg.id)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all backdrop-blur-md"><Trash2 size={14}/></button>
                                         </div>
                                     </div>
                                 </div>
@@ -416,46 +412,56 @@ export default function RoutineTimeline({ isDark }) {
                 </div>
             )}
 
-            {/* PUBLIC CHAT EDIT MODAL */}
+            {/* PUBLIC CHAT EDIT MODAL (POP-UP) */}
             {editModal.open && (
+                <div className="fixed inset-0 bg-black/90 z-[4000] flex items-center justify-center p-6 animate-in zoom-in duration-300">
+                    <div className={`w-full max-w-sm p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#141417] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
+                        <h4 className="text-xl font-black italic uppercase mb-6 text-emerald-500 text-center">Update Report</h4>
+                        <textarea
+                            value={editModal.text}
+                            onChange={(e) => setEditModal({...editModal, text: e.target.value})}
+                            className={`w-full p-4 rounded-xl mb-6 border bg-transparent h-32 font-bold text-sm outline-none ${isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-900'}`}
+                        />
+                        <div className="flex gap-4">
+                            <button onClick={() => setEditModal({open: false, id: null, text: ""})} className="flex-1 p-4 rounded-2xl bg-slate-100 text-black uppercase font-black text-[10px] tracking-widest active:scale-95 transition-all">Cancel</button>
+                            <button onClick={saveEdit} className="flex-1 p-4 bg-emerald-500 text-black rounded-2xl uppercase font-black text-[10px] tracking-widest active:scale-95 transition-all">Update Now</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PRODUCT ADD/EDIT MODAL */}
+            {modal.open && (
                 <div className="fixed inset-0 bg-black/90 z-[3000] flex items-center justify-center p-6 animate-in zoom-in duration-300">
-                    <div className={`relative w-full max-w-sm p-8 rounded-[2rem] border ${isDark ? 'bg-[#141417] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
-                        <button onClick={() => setEditModal({ open: false, id: null, text: "" })} className="absolute top-6 right-6 text-slate-400"><X size={20}/></button>
-                        <h4 className="text-xl font-black italic uppercase mb-6 text-emerald-500">Edit Message</h4>
-                        <textarea value={editModal.text} onChange={(e) => setEditModal({...editModal, text: e.target.value})} className={`w-full p-4 rounded-xl outline-none font-bold text-sm h-32 mb-4 border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'}`} />
-                        <button onClick={saveEdit} className="w-full p-4 bg-emerald-500 rounded-2xl text-black font-black uppercase text-xs tracking-widest active:scale-95 transition-all">Save Update</button>
+                    <div className={`relative w-full max-w-md p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#141417] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
+                        <button onClick={() => setModal({ open: false, type: 'add', index: null, value: "", stepTime: "" })} className="absolute top-6 right-6 text-slate-400"><X size={20}/></button>
+                        <h4 className="text-xl font-black italic uppercase mb-6 text-emerald-500">{modal.type === 'add' ? 'Add New' : 'Edit'} Formula</h4>
+                        <input value={modal.value} onChange={(e) => setModal({...modal, value: e.target.value})} placeholder="Product Name" className={`w-full p-4 rounded-xl outline-none font-bold text-sm mb-4 border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'}`} />
+                        <input value={modal.stepTime} onChange={(e) => setModal({...modal, stepTime: e.target.value})} placeholder="Time (e.g. 08:00 AM)" className={`w-full p-4 rounded-xl outline-none font-bold text-sm mb-6 border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'}`} />
+                        <button onClick={saveProduct} className="w-full p-4 bg-emerald-500 rounded-2xl text-black font-black uppercase text-xs tracking-widest active:scale-95 transition-all">Save Formula</button>
                     </div>
                 </div>
             )}
 
             {/* EXPERTS MODAL */}
             {showExpertsModal && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[2000] flex items-center justify-center p-6 animate-in fade-in duration-300">
-                    <div className={`relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-10 shadow-2xl border transition-all ${isDark ? 'bg-[#0F0F12] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                        <button onClick={() => setShowExpertsModal(false)} className="absolute top-8 right-8 p-2 rounded-full hover:bg-white/5 transition-all text-slate-500"><X size={24}/></button>
-                        <div className="mb-12 text-center md:text-left">
-                            <h2 className="text-4xl font-black italic uppercase text-emerald-500">GlowCare <br/><span className={isDark ? 'text-white' : 'text-slate-900'}>Expert Panel.</span></h2>
-                        </div>
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[2000] flex items-center justify-center p-6">
+                    <div className={`relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-10 border transition-all ${isDark ? 'bg-[#0F0F12] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-2xl'}`}>
+                        <button onClick={() => setShowExpertsModal(false)} className="absolute top-8 right-8 p-2 rounded-full hover:bg-white/5 text-slate-500"><X size={24}/></button>
+                        <h2 className="text-4xl font-black italic uppercase text-emerald-500 mb-12">Expert Panel.</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {experts.map((exp, idx) => (
-                                <div key={exp.id} className={`group relative p-8 rounded-[2.5rem] border transition-all ${isDark ? 'bg-white/[0.03] border-white/5' : 'bg-slate-50 border-slate-100 hover:shadow-xl'}`}>
+                                <div key={exp.id} className={`group relative p-8 rounded-[2.5rem] border ${isDark ? 'bg-white/[0.03] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
                                     {isAdmin && (
-                                        <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
-                                            <button onClick={() => setExpertEditModal({ open: true, index: idx, name: exp.name, role: exp.role, bio: exp.bio })} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all"><Edit3 size={14}/></button>
-                                            <button onClick={() => deleteExpert(idx)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={14}/></button>
+                                        <div className="absolute top-6 right-6 flex gap-2">
+                                            <button onClick={() => setExpertEditModal({ open: true, index: idx, name: exp.name, role: exp.role, bio: exp.bio })} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500"><Edit3 size={14}/></button>
+                                            <button onClick={() => deleteExpert(idx)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500"><Trash2 size={14}/></button>
                                         </div>
                                     )}
-                                    <div className="flex items-start gap-4 mb-6">
-                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-black font-black text-xl shadow-lg">{exp.name.charAt(0)}</div>
-                                        <div>
-                                            <h4 className="text-lg font-black uppercase italic tracking-tight">{exp.name}</h4>
-                                            <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">{exp.role}</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm font-bold opacity-60 leading-relaxed mb-8">{exp.bio}</p>
-                                    <button onClick={() => openPrivateChat(exp)} className="w-full p-4 rounded-2xl bg-emerald-500 text-black font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                        <MessageSquare size={16} /> Consult Now
-                                    </button>
+                                    <h4 className="text-lg font-black uppercase italic">{exp.name}</h4>
+                                    <p className="text-[10px] font-black uppercase text-emerald-500 mb-3">{exp.role}</p>
+                                    <p className="text-sm font-bold opacity-60 mb-8">{exp.bio}</p>
+                                    <button onClick={() => openPrivateChat(exp)} className="w-full p-4 rounded-2xl bg-emerald-500 text-black font-black uppercase text-[10px] tracking-widest">Consult Now</button>
                                 </div>
                             ))}
                         </div>
@@ -466,102 +472,68 @@ export default function RoutineTimeline({ isDark }) {
             {/* PRIVATE EXPERT CHAT */}
             {privateChat.open && (
                 <div className="fixed inset-0 z-[3000] flex justify-center items-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className={`w-full max-w-lg h-[600px] flex flex-col rounded-[2.5rem] shadow-2xl border overflow-hidden animate-in zoom-in duration-300 ${isDark ? 'bg-[#0F0F12] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    <div className={`w-full max-w-lg h-[600px] flex flex-col rounded-[2.5rem] border overflow-hidden ${isDark ? 'bg-[#0F0F12] border-white/10 text-white' : 'bg-white border-slate-200 shadow-2xl'}`}>
                         <div className={`p-6 border-b flex items-center justify-between ${isDark ? 'border-white/5' : 'bg-slate-50'}`}>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-black font-black uppercase">{privateChat.expert?.name.charAt(0)}</div>
-                                <div>
-                                    <h4 className="text-sm font-black uppercase italic">{privateChat.expert?.name}</h4>
-                                    <span className="text-[9px] font-bold text-emerald-500 uppercase">Consulting</span>
-                                </div>
+                                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-black font-black text-xs uppercase">{privateChat.expert?.name.charAt(0)}</div>
+                                <h4 className="text-sm font-black uppercase italic">{privateChat.expert?.name}</h4>
                             </div>
-                            <button onClick={() => setPrivateChat({ ...privateChat, open: false })} className="p-2 rounded-full hover:bg-white/10 transition-all"><X size={20} /></button>
+                            <button onClick={() => setPrivateChat({ ...privateChat, open: false })}><X size={20} /></button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
                             {privateChat.messages.map(msg => (
-                                <div key={msg.id} className="flex flex-col items-end">
-                                    <div className={`group relative max-w-[85%] p-4 rounded-2xl rounded-tr-none text-white ${isDark ? 'bg-emerald-600' : 'bg-emerald-500 shadow-md'}`}>
-                                        <p className="text-xs font-bold">{msg.text}</p>
-                                        <span className="text-[8px] font-black uppercase opacity-60 mt-1 block text-right">{msg.time}</span>
+                                <div key={msg.id} className="group flex flex-col items-end">
+                                    <div className="relative bg-emerald-500 p-4 rounded-2xl rounded-tr-none text-white text-xs font-bold max-w-[85%]">
+                                        <p>{msg.text}</p>
+                                        <span className="text-[8px] opacity-60 mt-1 block text-right">{msg.time}</span>
                                         <div className="absolute top-0 -left-12 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                             <button onClick={() => copyMessage(msg.text)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all backdrop-blur-md"><Copy size={12}/></button>
-                                            <button onClick={() => setPEditModal({ open: true, id: msg.id, text: msg.text })} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all backdrop-blur-md"><Edit3 size={12}/></button>
+                                            <button onClick={() => openPrivateEdit(msg.id, msg.text)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all backdrop-blur-md"><Edit3 size={12}/></button>
                                             <button onClick={() => deletePrivateMsg(msg.id)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all backdrop-blur-md"><Trash2 size={12}/></button>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <div className={`p-6 border-t ${isDark ? 'border-white/5' : 'bg-slate-50'}`}>
-                            <div className={`flex items-center gap-2 p-2 rounded-2xl border ${isDark ? 'bg-black/40 border-white/10' : 'bg-white border-slate-200'}`}>
-                                <input value={pChatMsg} onChange={(e) => setPChatMsg(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendPrivateMessage()} placeholder="Ask anything..." className="flex-1 bg-transparent p-2 outline-none text-xs font-bold" />
-                                <button onClick={sendPrivateMessage} className="p-3 bg-emerald-500 rounded-xl text-black transition-all active:scale-90"><Send size={16} /></button>
-                            </div>
+                        <div className="p-6 border-t border-white/5 flex gap-2">
+                            <input value={pChatMsg} onChange={(e) => setPChatMsg(e.target.value)} placeholder="Type a message..." className="flex-1 bg-transparent outline-none text-sm font-bold" />
+                            <button onClick={sendPrivateMessage} className="p-3 bg-emerald-500 rounded-xl text-black"><Send size={18}/></button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* PRIVATE MESSAGE EDIT MODAL */}
+            {/* PRIVATE CHAT EDIT MODAL */}
             {pEditModal.open && (
-                <div className="fixed inset-0 z-[4000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in zoom-in duration-300">
-                    <div className={`w-full max-w-sm p-8 rounded-[2rem] border shadow-2xl ${isDark ? 'bg-[#141417] border-white/10' : 'bg-white border-slate-200'}`}>
-                        <h4 className="text-lg font-black italic uppercase mb-6 text-emerald-500">Edit Question</h4>
-                        <textarea value={pEditModal.text} onChange={(e) => setPEditModal({ ...pEditModal, text: e.target.value })} className={`w-full p-4 rounded-xl outline-none font-bold text-xs h-32 border mb-4 ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'}`} />
-                        <div className="flex gap-3">
-                            <button onClick={() => setPEditModal({ open: false, id: null, text: "" })} className={`flex-1 p-3 rounded-xl border text-[10px] font-black uppercase ${isDark ? 'border-white/10' : 'border-slate-200'}`}>Cancel</button>
-                            <button onClick={savePrivateEdit} className="flex-1 p-3 rounded-xl bg-emerald-500 text-black text-[10px] font-black uppercase active:scale-95 transition-all">Update</button>
+                <div className="fixed inset-0 bg-black/90 z-[4000] flex items-center justify-center p-6 animate-in zoom-in duration-300">
+                    <div className={`w-full max-w-sm p-8 rounded-[2rem] border ${isDark ? 'bg-[#141417] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
+                        <h4 className="text-xl font-black italic uppercase mb-6 text-emerald-500 text-center">Edit Private Chat</h4>
+                        <textarea
+                            value={pEditModal.text}
+                            onChange={(e) => setPEditModal({...pEditModal, text: e.target.value})}
+                            className={`w-full p-4 rounded-xl mb-4 border bg-transparent h-32 font-bold text-sm outline-none ${isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-900'}`}
+                        />
+                        <div className="flex gap-4">
+                            <button onClick={() => setPEditModal({open: false, id: null, text: ""})} className="flex-1 p-4 rounded-2xl bg-slate-100 text-black uppercase font-black text-[10px] tracking-widest active:scale-95 transition-all">Cancel</button>
+                            <button onClick={savePrivateEdit} className="flex-1 p-4 bg-emerald-500 text-black rounded-2xl uppercase font-black text-[10px] tracking-widest active:scale-95 transition-all">Update</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* PRODUCT ADD/EDIT MODAL */}
-            {modal.open && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[3000] flex items-center justify-center p-6 animate-in zoom-in duration-300">
-                    <div className={`relative w-full max-w-md rounded-[3rem] p-10 shadow-2xl border ${isDark ? 'bg-[#141417] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                        <button onClick={() => setModal({ ...modal, open: false })} className="absolute top-8 right-8 text-slate-400"><X size={20}/></button>
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="p-3 bg-emerald-500 rounded-2xl text-black shadow-lg shadow-emerald-500/20"><Sparkles size={20} /></div>
-                            <h3 className="text-2xl font-black italic uppercase text-emerald-500">{modal.type === 'add' ? 'New Formula' : 'Update Item'}</h3>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Formula Name</label>
-                                <input className={`w-full p-4 rounded-xl outline-none font-bold text-sm border mt-1 ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} value={modal.value} onChange={(e) => setModal({ ...modal, value: e.target.value })} />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Step Time</label>
-                                <input className={`w-full p-4 rounded-xl outline-none font-bold text-sm border mt-1 ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} value={modal.stepTime} onChange={(e) => setModal({ ...modal, stepTime: e.target.value })} />
-                            </div>
-                            <button onClick={saveProduct} className="w-full p-4 bg-emerald-600 rounded-2xl text-white font-black uppercase text-xs tracking-widest active:scale-95 transition-all shadow-xl mt-4">Save</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* EXPERT UPDATE MODAL */}
+            {/* EXPERT EDIT MODAL */}
             {expertEditModal.open && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[3000] flex items-center justify-center p-6 animate-in zoom-in duration-300">
-                    <div className={`relative w-full max-w-md rounded-[3rem] p-10 shadow-2xl border ${isDark ? 'bg-[#141417] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                        <button onClick={() => setExpertEditModal({...expertEditModal, open: false})} className="absolute top-8 right-8 text-slate-400"><X size={20}/></button>
-                        <h3 className="text-2xl font-black italic uppercase text-emerald-500 mb-8">Edit Expert</h3>
-                        <div className="space-y-4">
-                            <input className={`w-full p-4 rounded-xl outline-none font-bold text-sm border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50'}`} value={expertEditModal.name} onChange={(e) => setExpertEditModal({...expertEditModal, name: e.target.value})} placeholder="Name" />
-                            <input className={`w-full p-4 rounded-xl outline-none font-bold text-sm border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50'}`} value={expertEditModal.role} onChange={(e) => setExpertEditModal({...expertEditModal, role: e.target.value})} placeholder="Role" />
-                            <textarea className={`w-full p-4 rounded-xl outline-none font-bold text-sm border h-24 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50'}`} value={expertEditModal.bio} onChange={(e) => setExpertEditModal({...expertEditModal, bio: e.target.value})} placeholder="Bio" />
-                            <button onClick={saveExpertUpdate} className="w-full p-4 bg-emerald-600 rounded-2xl text-white font-black uppercase text-xs mt-4 active:scale-95 transition-all">Update Expert</button>
+                <div className="fixed inset-0 bg-black/90 z-[3000] flex items-center justify-center p-6">
+                    <div className={`w-full max-w-md p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#141417] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
+                        <h4 className="text-xl font-black italic uppercase mb-6 text-emerald-500">Edit Expert</h4>
+                        <input value={expertEditModal.name} onChange={(e) => setExpertEditModal({...expertEditModal, name: e.target.value})} placeholder="Name" className="w-full p-4 rounded-xl mb-4 border bg-transparent" />
+                        <input value={expertEditModal.role} onChange={(e) => setExpertEditModal({...expertEditModal, role: e.target.value})} placeholder="Role" className="w-full p-4 rounded-xl mb-4 border bg-transparent" />
+                        <textarea value={expertEditModal.bio} onChange={(e) => setExpertEditModal({...expertEditModal, bio: e.target.value})} placeholder="Bio" className="w-full p-4 rounded-xl mb-6 border bg-transparent h-32" />
+                        <div className="flex gap-4">
+                            <button onClick={() => setExpertEditModal({open: false})} className="flex-1 p-4 rounded-2xl bg-slate-100 text-black uppercase font-black">Cancel</button>
+                            <button onClick={saveExpertUpdate} className="flex-1 p-4 bg-emerald-500 text-black rounded-2xl uppercase font-black">Save</button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* ALARM POPUP */}
-            {activeAlarm && (
-                <div className="fixed inset-0 bg-emerald-600 z-[9999] flex flex-col items-center justify-center text-white p-8 animate-in fade-in">
-                    <Clock size={80} className="animate-wiggle mb-6" />
-                    <h2 className="text-5xl font-black italic uppercase text-center mb-8">{activeAlarm.name}</h2>
-                    <button onClick={stopAlarm} className="w-full max-w-sm p-6 bg-white text-emerald-600 rounded-full font-black uppercase shadow-2xl active:scale-95 transition-all">Dismiss</button>
                 </div>
             )}
         </div>

@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     User, Briefcase, Mail, Lock, Eye, EyeOff,
-    ArrowRight, Fingerprint, Sparkles, ShieldCheck, X, Hash
+    ArrowRight, Fingerprint, Sparkles, ShieldCheck, X, Hash, AlertCircle, CheckCircle2
 } from 'lucide-react';
 
 export default function SignUpModal({ isDark, onClose }) {
     const [role, setRole] = useState('user');
     const [showPassword, setShowPassword] = useState(false);
+    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
     const navigate = useNavigate();
 
-    // Form data state
     const [formData, setFormData] = useState({
         id: '',
         name: '',
@@ -20,6 +20,11 @@ export default function SignUpModal({ isDark, onClose }) {
         role: 'user'
     });
 
+    const showToast = (msg, type = 'success') => {
+        setNotification({ show: true, message: msg, type: type });
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+    };
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -27,42 +32,62 @@ export default function SignUpModal({ isDark, onClose }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // 1. කලින් සේව් කරපු users ලා ගන්නවා
         const existingUsers = JSON.parse(localStorage.getItem('userProfiles')) || [];
+        const storedExperts = JSON.parse(localStorage.getItem('glow_experts')) || [];
 
-        // 2. Email Validation
+        // පවතින email එකක්දැයි පරීක්ෂා කිරීම (Users හෝ Experts දෙගොල්ලන්ගෙම)
         const userExists = existingUsers.find(u => u.email === formData.email);
-        if (userExists) {
-            alert("This email is already registered!");
+        const expertExists = storedExperts.find(e => e.email === formData.email);
+
+        if (userExists || expertExists) {
+            showToast("This email is already registered!", "error");
             return;
         }
 
-        // 3. අලුත් User/Expert Object එක (Role එකත් එක්කම)
-        const newUser = {
-            ...formData,
-            role: role,
-            createdAt: new Date().toISOString()
-        };
+        if (role === 'user') {
+            // User කෙනෙක් නම් පමණක් userProfiles වලට add කරයි
+            const newUser = {
+                ...formData,
+                role: 'user',
+                createdAt: new Date().toISOString()
+            };
+            const updatedUsers = [...existingUsers, newUser];
+            localStorage.setItem('userProfiles', JSON.stringify(updatedUsers));
+        } else if (role === 'expert') {
+            // Expert කෙනෙක් නම් glow_experts වලට පමණක් add කරයි
+            const newExpertEntry = {
+                id: formData.id || Date.now(),
+                name: formData.name,
+                email: formData.email,
+                password: formData.password, // Login වීමට අවශ්‍ය නම් password එකද මෙහි තබාගත හැක
+                role: "Clinical Expert",
+                license: formData.license,
+                bio: `Licensed professional (ID: ${formData.license}). Available for skin consultations.`
+            };
 
-        const updatedUsers = [...existingUsers, newUser];
-
-        // 4. LocalStorage එකට සේව් කිරීම
-        localStorage.setItem('userProfiles', JSON.stringify(updatedUsers));
-
-        alert(`Account Created Successfully for ${formData.name}!`);
-
-        // 5. Navigate Logic - Expert නම් Timeline එකට, User නම් Profile එකට
-        if (role === 'expert') {
-            navigate('/routine-timeline', { state: { profile: newUser } });
-        } else {
-            navigate('/user-profiles', { state: { profile: newUser } });
+            const updatedExpertList = [...storedExperts, newExpertEntry];
+            localStorage.setItem('glow_experts', JSON.stringify(updatedExpertList));
         }
 
-        onClose();
+        showToast(`Account Created Successfully for ${formData.name}!`, "success");
+
+        setTimeout(() => {
+            navigate('/');
+            onClose();
+        }, 1500);
     };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {notification.show && (
+                <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className={`flex items-center gap-3 px-6 py-4 rounded-[1.5rem] shadow-2xl backdrop-blur-xl border ${notification.type === 'error' ? 'bg-rose-500/90 border-rose-400 text-white' : 'bg-emerald-600/90 border-emerald-400 text-white'}`}>
+                        {notification.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+                        <span className="text-xs font-black uppercase tracking-wider">{notification.message}</span>
+                    </div>
+                </div>
+            )}
+
             <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
 
             <div className={`relative w-full max-w-[920px] grid grid-cols-1 lg:grid-cols-2 rounded-[2.5rem] overflow-hidden border shadow-2xl animate-in zoom-in-95 duration-300 ${isDark ? 'bg-[#0A0A0B] border-white/10' : 'bg-white border-slate-100'}`}>
