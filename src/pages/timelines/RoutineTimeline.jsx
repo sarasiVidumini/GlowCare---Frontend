@@ -112,8 +112,8 @@ export default function RoutineTimeline({ isDark }) {
     const isAdmin = activeUser?.email === 'admin@glowcare.ai';
 
     const [db, setDb] = useState(() => JSON.parse(localStorage.getItem('skin_db_v6')) || INITIAL_DB);
-    const [path, setPath] = useState(state?.profile?.path || 'Natural');
-    const [part, setPart] = useState('Face');
+    const [path, setPath] = useState(state?.path || 'Natural');
+    const [part, setPart] = useState(state?.zone ? (state.zone.charAt(0).toUpperCase() + state.zone.slice(1)) : 'Face');
     const [time, setTime] = useState('morning');
     const [done, setDone] = useState(() => JSON.parse(localStorage.getItem('done_tasks')) || {});
     const [modal, setModal] = useState({ open: false, type: 'add', index: null, value: "", stepTime: "" });
