@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight, Activity, Leaf, Cpu, Camera,
     Zap, Sparkles, CheckCircle2, Scissors,
-    Hand, Footprints, ScanFace, Sprout, Thermometer, ChevronRight
+    Hand, Footprints, ScanFace, Sprout, Thermometer, ChevronRight,
+    ShieldCheck, BarChart3
 } from 'lucide-react';
 
 // --- LEAF ANIMATION COMPONENT ---
 const FallingLeaves = ({ isDark }) => {
     const [leaves, setLeaves] = useState([]);
     useEffect(() => {
-        const leafIcons = Array.from({ length: 8 }).map((_, i) => ({
+        const leafIcons = Array.from({ length: 10 }).map((_, i) => ({
             id: i,
             left: Math.random() * 100 + '%',
             delay: Math.random() * 12 + 's',
@@ -52,23 +53,71 @@ export default function SmartAnalysis({ isDark }) {
     const [scanProgress, setScanProgress] = useState(0);
     const navigate = useNavigate();
 
+    const playScanCompleteSound = () => {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const masterGain = audioCtx.createGain();
+        masterGain.connect(audioCtx.destination);
+
+        const playTone = (freq, startTime, duration, vol) => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.5, startTime + duration);
+            g.gain.setValueAtTime(0, startTime);
+            g.gain.linearRampToValueAtTime(vol, startTime + 0.05);
+            g.gain.linearRampToValueAtTime(0, startTime + duration);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+
+        playTone(440, audioCtx.currentTime, 0.5, 0.1);
+        playTone(880, audioCtx.currentTime + 0.1, 0.4, 0.08);
+        playTone(1320, audioCtx.currentTime + 0.2, 0.3, 0.05);
+    };
+
     const bodyParts = [
-        { id: 'Face', label: 'Facial Dermis', icon: <ScanFace size={20} /> },
-        { id: 'Hair', label: 'Follicle Matrix', icon: <Scissors size={20} /> },
-        { id: 'Hands', label: 'Palmar Surface', icon: <Hand size={20} /> },
-        { id: 'Legs', label: 'Dermal Layer', icon: <Footprints size={20} /> }
+        {
+            id: 'Face',
+            label: 'Facial Dermis',
+            info: 'Hydration & texture analysis.',
+            icon: <ScanFace size={20} />,
+            img: "https://images.pexels.com/photos/3762871/pexels-photo-3762871.jpeg?auto=compress&cs=tinysrgb&w=800",
+            grid: "md:col-span-2 md:row-span-2"
+        },
+        {
+            id: 'Hair',
+            label: 'Follicle Matrix',
+            info: 'Root strength check.',
+            icon: <Scissors size={20} />,
+            img: "https://images.pexels.com/photos/973401/pexels-photo-973401.jpeg?auto=compress&cs=tinysrgb&w=800",
+            grid: "md:col-span-2 md:row-span-1"
+        },
+        {
+            id: 'Hands',
+            label: 'Palmar Surface',
+            info: 'Moisture levels.',
+            icon: <Hand size={20} />,
+            img: "https://images.pexels.com/photos/286951/pexels-photo-286951.jpeg?auto=compress&cs=tinysrgb&w=800",
+            grid: "md:col-span-1 md:row-span-1"
+        },
+        {
+            id: 'Legs',
+            label: 'Dermal Layer',
+            info: 'Skin tone analysis.',
+            icon: <Footprints size={20} />,
+            img: "https://images.pexels.com/photos/1619488/pexels-photo-1619488.jpeg?auto=compress&cs=tinysrgb&w=800",
+            grid: "md:col-span-1 md:row-span-1"
+        }
     ];
 
     const treatmentPaths = [
-        { id: 'Natural', t: 'Natural', d: 'Botanical Repair', info: 'Uses pure plant extracts to reinforce the natural skin barrier and promote organic healing.', icon: <Leaf className="text-emerald-500" /> },
-        { id: 'Chemical', t: 'Chemical', d: 'Molecular Science', info: 'Advanced active compounds designed for rapid cellular turnover and intensive pigmentation repair.', icon: <Zap className="text-blue-500" /> },
-        { id: 'Ayurvedic', t: 'Ayurvedic', d: 'Vedic Wisdom', info: 'Traditional herbal formulations focused on deep detoxification and holistic tissue rejuvenation.', icon: <Sprout className="text-amber-500" /> }
+        { id: 'Natural', t: 'Natural', d: 'Botanical Repair', info: 'Pure plant-based extracts designed to heal the skin barrier naturally without synthetic additives.', icon: <Leaf />, color: 'emerald' },
+        { id: 'Chemical', t: 'Chemical', d: 'Molecular Science', info: 'Clinically proven active compounds that target deep cellular repair for immediate results.', icon: <Zap />, color: 'blue' },
+        { id: 'Ayurvedic', t: 'Ayurvedic', d: 'Vedic Wisdom', info: 'Time-tested herbal remedies focused on balancing energy and long-term detoxification.', icon: <Sprout />, color: 'amber' }
     ];
-
-    const playNotificationSound = () => {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
-        audio.play().catch(e => console.log("Audio play blocked"));
-    };
 
     const handlePartSelect = (id) => {
         setSelectedPart(id);
@@ -81,19 +130,18 @@ export default function SmartAnalysis({ isDark }) {
             setImage(URL.createObjectURL(file));
             setStep(-0.5);
 
-            // LOGIC: Map specific parts to logic-based suggestions instead of just Natural
+            // Logic to determine the best treatment based on selected body part
             let suggestion = 'Natural';
-            if (selectedPart === 'Hair') suggestion = 'Chemical';
+            if (selectedPart === 'Face') suggestion = 'Natural';
+            else if (selectedPart === 'Hair') suggestion = 'Chemical';
             else if (selectedPart === 'Hands' || selectedPart === 'Legs') suggestion = 'Ayurvedic';
-            else suggestion = Math.random() > 0.5 ? 'Natural' : 'Chemical';
 
             setTimeout(() => {
-                setAiResults({ healthScore: Math.floor(Math.random() * 15) + 80, suggestedPath: suggestion });
+                setAiResults({ healthScore: 85, suggestedPath: suggestion });
                 setStep(2);
                 setShowAlert(true);
-                playNotificationSound();
-                // Auto-hide alert after 10 minutes
-                setTimeout(() => setShowAlert(false), 600000);
+                playScanCompleteSound(); // Alert sound triggers here
+                setTimeout(() => setShowAlert(false), 6000);
             }, 3000);
         }
     };
@@ -112,73 +160,63 @@ export default function SmartAnalysis({ isDark }) {
     };
 
     return (
-        <div className={`min-h-screen flex flex-col font-sans transition-all duration-1000 relative overflow-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-[#F9FAFB] text-slate-900'}`}>
+        <div className={`min-h-screen flex flex-col font-sans transition-all duration-1000 relative overflow-hidden ${isDark ? 'bg-[#030303] text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
             <FallingLeaves isDark={isDark} />
 
-            {/* AI SUGGESTION ALERT - TOP RIGHT */}
+            {/* AI SUGGESTION ALERT */}
             {showAlert && (
-                <div className="fixed top-8 right-8 z-[200] w-full max-w-[350px] animate-in slide-in-from-right-10 fade-in duration-700">
-                    <div className={`relative overflow-hidden p-6 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl ${isDark ? 'bg-black/80 border-emerald-500/20' : 'bg-white/90 border-emerald-500/10 shadow-emerald-500/5'}`}>
-                        <div className="flex items-start gap-4 relative z-10">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                                <Sparkles size={22} className="text-emerald-500 animate-pulse" />
+                <div className="fixed top-6 right-6 z-[250] w-full max-w-[340px] animate-in slide-in-from-right-full duration-700">
+                    <div className={`relative overflow-hidden p-5 rounded-[1.5rem] border shadow-xl backdrop-blur-3xl ${isDark ? 'bg-emerald-950/40 border-emerald-500/30' : 'bg-white border-emerald-200'}`}>
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg">
+                                <Sparkles size={20} />
                             </div>
-                            <div className="space-y-1">
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">AI Intelligent Match</h4>
-                                <h3 className="text-xl font-black italic uppercase leading-tight tracking-tighter">
-                                    {aiResults?.suggestedPath} <span className="opacity-40 text-emerald-500">Protocol</span>
-                                </h3>
-                                <p className="text-[10px] font-medium opacity-60 leading-relaxed">System scan confirms the {aiResults?.suggestedPath} route as the most effective for your {selectedPart} profile.</p>
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500">AI Recommendation</p>
+                                <h3 className="text-lg font-black italic uppercase leading-tight">{aiResults?.suggestedPath} Protocol Selected</h3>
                             </div>
-                            <button onClick={() => setShowAlert(false)} className="opacity-20 hover:opacity-100 transition-opacity">
-                                <CheckCircle2 size={18} />
-                            </button>
                         </div>
-                        {/* Shimmer Line */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent -translate-x-full animate-[shimmer_4s_infinite]" />
                     </div>
                 </div>
             )}
 
-            {/* Global Scanning Overlay */}
             {isScanning && (
-                <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center backdrop-blur-3xl ${isDark ? 'bg-black/95' : 'bg-white/95'}`}>
-                    <Cpu size={64} className="text-emerald-500 animate-pulse mb-8" />
-                    <h3 className="text-4xl font-black italic uppercase tracking-tighter">Processing <span className="text-emerald-500">Timeline</span></h3>
-                    <div className="w-64 h-1 bg-white/10 mt-6 rounded-full overflow-hidden">
+                <div className={`fixed inset-0 z-[300] flex flex-col items-center justify-center backdrop-blur-3xl ${isDark ? 'bg-black/90' : 'bg-white/90'}`}>
+                    <Cpu size={50} className="text-emerald-500 animate-spin-slow mb-6" />
+                    <div className="w-56 h-1 bg-neutral-800 rounded-full overflow-hidden">
                         <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${scanProgress}%` }} />
                     </div>
+                    <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-emerald-500">Processing Matrix</p>
                 </div>
             )}
 
-            <main className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
-                <div className="max-w-5xl w-full">
-
-                    {/* STEP -2: MANUAL PART SELECTION */}
+            <main className="flex-1 flex items-center justify-center p-6 relative z-10">
+                <div className="max-w-6xl w-full">
                     {step === -2 && (
-                        <div className="space-y-16 animate-in fade-in duration-1000">
-                            <div className="text-center space-y-4">
-                                <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-emerald-500">AI Diagnostic Module</h2>
-                                <h1 className="text-7xl md:text-8xl font-black italic uppercase tracking-tighter leading-none">Select <span className="text-emerald-500">Target.</span></h1>
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                            <div className="text-center space-y-3">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                    <BarChart3 size={12} className="text-emerald-500" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Scanner V3.2</span>
+                                </div>
+                                <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tight">Choose <span className="text-emerald-500">Target.</span></h1>
                             </div>
-                            <div className="max-w-2xl mx-auto space-y-4">
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[500px]">
                                 {bodyParts.map((part) => (
                                     <button
                                         key={part.id}
                                         onClick={() => handlePartSelect(part.id)}
-                                        className={`w-full group flex items-center justify-between p-8 rounded-[2.5rem] border transition-all duration-500 ${isDark ? 'bg-white/[0.02] border-white/5 hover:border-emerald-500/50 hover:bg-white/[0.05]' : 'bg-white border-slate-200 hover:border-emerald-500 shadow-xl shadow-slate-200/40'}`}
+                                        className={`${part.grid} group relative overflow-hidden rounded-[2rem] border transition-all duration-500 bg-neutral-900 ${isDark ? 'border-white/5 hover:border-emerald-500/40' : 'border-slate-200 hover:border-emerald-500 shadow-lg'}`}
                                     >
-                                        <div className="flex items-center gap-8">
-                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${isDark ? 'bg-white/5 text-white/40 group-hover:text-emerald-500' : 'bg-slate-50 text-slate-400 group-hover:text-emerald-500 shadow-inner'}`}>
+                                        <img src={part.img} alt={part.id} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-90" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                        <div className="absolute inset-0 p-6 flex flex-col justify-end items-start z-10">
+                                            <div className="mb-3 p-2 rounded-xl bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-500">
                                                 {part.icon}
                                             </div>
-                                            <div className="text-left">
-                                                <h3 className="text-3xl font-black uppercase italic leading-none tracking-tighter">{part.id}</h3>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mt-1">{part.label}</p>
-                                            </div>
-                                        </div>
-                                        <div className="w-12 h-12 rounded-full border border-emerald-500/0 group-hover:border-emerald-500/50 flex items-center justify-center transition-all">
-                                            <ChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-emerald-500" />
+                                            <h3 className="text-2xl font-black uppercase italic leading-none text-white">{part.id}</h3>
+                                            <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-500 mt-1">{part.label}</p>
                                         </div>
                                     </button>
                                 ))}
@@ -186,75 +224,64 @@ export default function SmartAnalysis({ isDark }) {
                         </div>
                     )}
 
-                    {/* STEP -1: IMAGE UPLOAD */}
                     {step === -1 && (
-                        <div className="space-y-12 text-center animate-in zoom-in-95 duration-700">
-                            <div className="space-y-4">
-                                <h1 className="text-7xl font-black italic uppercase leading-none tracking-tighter">Capture <span className="text-emerald-500">Scan.</span></h1>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 italic">Biometric probe focused on: {selectedPart}</p>
-                            </div>
-                            <div onClick={() => fileInputRef.current.click()} className={`group max-w-lg mx-auto h-[450px] border-2 border-dashed rounded-[4rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-700 ${isDark ? 'border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5' : 'border-slate-200 hover:border-emerald-500 bg-white shadow-2xl shadow-slate-200/50'}`}>
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-emerald-500 blur-3xl opacity-0 group-hover:opacity-30 transition-opacity" />
-                                    <Camera size={72} className="text-emerald-500 relative z-10 group-hover:scale-110 transition-transform duration-500" />
+                        <div className="space-y-8 text-center animate-in zoom-in-95 duration-500">
+                            <h1 className="text-5xl md:text-6xl font-black italic uppercase tracking-tight">Sync <span className="text-emerald-500">Visuals.</span></h1>
+                            <div
+                                onClick={() => fileInputRef.current.click()}
+                                className={`group relative max-w-xl mx-auto h-[380px] rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-500 overflow-hidden ${isDark ? 'bg-white/[0.02] border-emerald-500/20 hover:border-emerald-500' : 'bg-white border-emerald-500/20 shadow-xl'}`}
+                            >
+                                <div className="p-6 rounded-full bg-emerald-500/10 text-emerald-500 mb-6 group-hover:scale-110 transition-transform">
+                                    <Camera size={50} strokeWidth={1.5} />
                                 </div>
-                                <p className="mt-8 text-[11px] font-black uppercase tracking-[0.4em] italic opacity-40 group-hover:opacity-100 transition-opacity">Sync Optical Input</p>
+                                <div className="text-center px-6">
+                                    <p className="text-[12px] font-black uppercase tracking-widest text-emerald-500 mb-1">Initialize Optical Link</p>
+                                    <p className="text-[9px] uppercase opacity-40 font-bold italic tracking-widest text-center">RAW • JPG • PNG</p>
+                                </div>
                             </div>
                             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
-                            <button onClick={() => setStep(-2)} className="text-[11px] font-black uppercase opacity-20 hover:opacity-100 transition-opacity tracking-[0.3em] border-b border-transparent hover:border-current">← Change Target Zone</button>
                         </div>
                     )}
 
-                    {/* STEP -0.5: SCANNING ANIMATION */}
                     {step === -0.5 && (
-                        <div className="relative max-w-sm mx-auto text-center space-y-12 animate-in fade-in duration-1000">
-                            <div className="relative rounded-[4rem] overflow-hidden border-[12px] border-white/5 aspect-[3/4] bg-black shadow-2xl">
-                                <img src={image} className="w-full h-full object-cover grayscale blur-md opacity-40 scale-110 animate-pulse" />
-                                <div className="absolute left-0 w-full h-[3px] bg-emerald-400 shadow-[0_0_40px_#10b981] animate-scan-slow z-20" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/30 to-transparent opacity-60" />
+                        <div className="relative max-w-sm mx-auto text-center space-y-8 animate-in fade-in duration-500">
+                            <div className="relative rounded-[3rem] overflow-hidden border-[10px] border-emerald-500/5 aspect-[3/4] bg-black shadow-2xl">
+                                <img src={image} className="w-full h-full object-cover grayscale opacity-50" />
+                                <div className="absolute left-0 w-full h-[3px] bg-emerald-400 shadow-[0_0_30px_#10b981] animate-scan-slow z-20" />
                             </div>
-                            <div className="space-y-3">
-                                <h3 className="text-3xl font-black uppercase italic tracking-tighter text-emerald-500 animate-pulse">Analyzing_Dermis...</h3>
-                                <p className="text-[10px] font-mono opacity-30 tracking-widest">MAP_ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black uppercase italic text-emerald-500 animate-pulse tracking-tight">Analyzing_Matrix</h3>
+                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Decrypting Dermal Layers</p>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 2: TREATMENT PATH SELECTION */}
                     {step === 2 && (
-                        <div className="space-y-16 w-full animate-in slide-in-from-bottom-10 duration-1000">
-                            <div className="text-center space-y-4">
-                                <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-emerald-500">Analysis Result</h2>
-                                <h1 className="text-7xl font-black italic uppercase tracking-tighter leading-none italic">Select <span className="text-emerald-500">Protocol.</span></h1>
+                        <div className="space-y-10 w-full animate-in slide-in-from-bottom-5 duration-700">
+                            <div className="text-center">
+                                <h1 className="text-5xl md:text-6xl font-black italic uppercase tracking-tight">Select <span className="text-emerald-500">Protocol.</span></h1>
+                                <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-30 mt-2">Optimized AI Pathways</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {treatmentPaths.map((path) => (
                                     <button
                                         key={path.id}
                                         onClick={() => handleNavigate(path.id)}
-                                        className={`relative group p-10 rounded-[4rem] border transition-all duration-700 text-left flex flex-col justify-between h-[480px] overflow-hidden ${isDark ? 'bg-white/[0.02] border-white/5 hover:border-emerald-500/50 hover:bg-white/[0.04]' : 'bg-white border-slate-200 shadow-2xl hover:border-emerald-500'}`}
+                                        className={`group relative p-8 rounded-[2.5rem] border transition-all duration-500 h-[450px] flex flex-col justify-between overflow-hidden text-left ${isDark ? 'bg-white/[0.03] border-white/5 hover:border-emerald-500/50' : 'bg-white border-slate-200 hover:border-emerald-500 shadow-xl'} ${aiResults?.suggestedPath === path.id ? 'ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : ''}`}
                                     >
-                                        {aiResults.suggestedPath === path.id && (
-                                            <div className="absolute top-8 right-8 bg-emerald-500 text-black text-[9px] font-black px-4 py-2 rounded-full uppercase italic tracking-[0.2em] z-20 animate-bounce shadow-lg shadow-emerald-500/20">AI Optimized</div>
-                                        )}
-                                        <div className="space-y-8 relative z-10">
-                                            <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center transition-all duration-500 ${isDark ? 'bg-white/5 border border-white/10 group-hover:bg-emerald-500/10' : 'bg-slate-50 border border-slate-100 group-hover:bg-emerald-500/5'}`}>
-                                                {path.icon}
+                                        <div className="relative z-10">
+                                            <div className={`w-14 h-14 rounded-2xl bg-${path.color}-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-${path.color}-500/20`}>
+                                                {React.cloneElement(path.icon, { size: 24, className: `text-${path.color}-500` })}
                                             </div>
-                                            <div className="space-y-5">
-                                                <div>
-                                                    <h3 className="text-4xl font-black italic uppercase leading-none tracking-tighter mb-2">{path.t}</h3>
-                                                    <p className="text-[11px] font-black opacity-30 uppercase tracking-[0.3em]">{path.d}</p>
-                                                </div>
-                                                <p className="text-[13px] font-medium opacity-50 leading-relaxed">{path.info}</p>
-                                            </div>
+                                            <h3 className="text-3xl font-black italic uppercase leading-tight mb-2 tracking-tighter">{path.t}</h3>
+                                            <p className={`text-[9px] font-black uppercase tracking-widest mb-4 text-${path.color}-500`}>{path.d}</p>
+                                            <p className="text-[13px] leading-relaxed opacity-60 font-medium">
+                                                {path.info}
+                                            </p>
                                         </div>
-                                        <div className="relative z-10 flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.3em] group-hover:text-emerald-500 transition-colors">
-                                            Proceed <ArrowRight size={16} className="group-hover:translate-x-3 transition-transform duration-500" />
+                                        <div className={`relative z-10 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest group-hover:text-${path.color}-500 transition-colors`}>
+                                            Start Protocol <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
                                         </div>
-
-                                        {/* Abstract background shape */}
-                                        <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-emerald-500/5 rounded-full blur-[90px] group-hover:bg-emerald-500/10 transition-all duration-700" />
                                     </button>
                                 ))}
                             </div>
@@ -263,30 +290,28 @@ export default function SmartAnalysis({ isDark }) {
                 </div>
             </main>
 
-            {/* Global Footer */}
-            <footer className="p-8 flex justify-between items-center relative z-10 border-t border-white/5">
-                <div className="flex items-center gap-4 opacity-30">
-                    <Activity size={14} className="animate-spin text-emerald-500" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Core Processing Online</span>
+            <footer className="p-8 flex justify-between items-center border-t border-white/5 text-[9px] font-black uppercase tracking-widest opacity-30">
+                <div className="flex items-center gap-3">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>System Optimal</span>
                 </div>
-                <div className="flex gap-8 opacity-20 text-[10px] font-black uppercase tracking-widest">
-                    <span>Diagnostic v4.0.2</span>
-                    <span>© GlowCare AI</span>
-                </div>
+                <span>© GlowCare 2026</span>
             </footer>
 
             <style>{`
                 @keyframes leafFall {
-                    0% { transform: translateY(-10vh) rotate(0deg) translateX(0px); opacity: 0; }
+                    0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
                     20% { opacity: 1; }
-                    100% { transform: translateY(110vh) rotate(360deg) translateX(var(--swing-dist)); opacity: 0; }
+                    100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
                 }
-                @keyframes scan-slow { 0% { top: 0%; } 100% { top: 100%; } }
-                @keyframes shimmer {
-                    from { transform: translateX(-100%); }
-                    to { transform: translateX(100%); }
+                @keyframes scan-slow { 
+                    0% { top: 0%; opacity: 0.3; } 
+                    50% { opacity: 1; }
+                    100% { top: 100%; opacity: 0.3; } 
                 }
-                .animate-scan-slow { animation: scan-slow 2.8s ease-in-out infinite; }
+                .animate-scan-slow { animation: scan-slow 2.5s ease-in-out infinite; }
+                .animate-spin-slow { animation: spin 8s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </div>
     );
