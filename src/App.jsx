@@ -54,8 +54,13 @@ function App() {
                         toggleTheme={toggleTheme}
                         onLoginSuccess={handleLoginSuccess}
                         user={user}
+<<<<<<< HEAD
                         isSignInOpen={isSignInOpen}
                         setIsSignInOpen={setIsSignInOpen}
+=======
+                        isSignInOpen={isSignInOpen} // අලුතින් එක් කළා
+                        setIsSignInOpen={setIsSignInOpen} // added to better functioning
+>>>>>>> 699673d1de31893e942e7adc13d448f0cd1fccac
                     />
                 </main>
 
