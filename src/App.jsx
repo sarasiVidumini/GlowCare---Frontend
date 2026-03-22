@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
-import Navbar from './components/Layout/Navbar';
-import Footer from './components/Layout/Footer';
-import AppRoute from './routes/AppRoutes.jsx';
+
+// Updated imports to match the new layout structure
+import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
     const [isDark, setIsDark] = useState(false);
     const [user, setUser] = useState(null);
-    const [isSignInOpen, setIsSignInOpen] = useState(false); // අලුතින් එක් කළා
+    const [isSignInOpen, setIsSignInOpen] = useState(false);
 
     useEffect(() => {
         const loggedInUser = localStorage.getItem('activeUser');
@@ -22,7 +24,7 @@ function App() {
         console.log("Logged in User: ", userData);
         setUser(userData);
         localStorage.setItem('activeUser', JSON.stringify(userData));
-        setIsSignInOpen(false); // ලොග් වූ පසු ක්ලෝස් කරන්න
+        setIsSignInOpen(false);
     };
 
     const handleLogout = () => {
@@ -43,17 +45,17 @@ function App() {
                     toggleTheme={toggleTheme}
                     user={user}
                     onLogout={handleLogout}
-                    onSignInClick={() => setIsSignInOpen(true)} // Navbar එකට ෆන්ක්ෂන් එක දුන්නා
+                    onSignInClick={() => setIsSignInOpen(true)}
                 />
 
                 <main className="flex-grow">
-                    <AppRoute
+                    <AppRoutes
                         isDark={isDark}
                         toggleTheme={toggleTheme}
                         onLoginSuccess={handleLoginSuccess}
                         user={user}
-                        isSignInOpen={isSignInOpen} // අලුතින් එක් කළා
-                        setIsSignInOpen={setIsSignInOpen} // අලුතින් එක් කළා
+                        isSignInOpen={isSignInOpen}
+                        setIsSignInOpen={setIsSignInOpen}
                     />
                 </main>
 

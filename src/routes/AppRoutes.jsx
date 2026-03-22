@@ -1,18 +1,23 @@
 import React from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
+
+// 1. Pointing to your OLD nested folders temporarily (we will clean these up one by one)
 import Home from "../pages/home/Home";
+import SignUp from "../pages/auth/SignUp";
 import SkinAnalysis from "../pages/skin/SkinAnalysis";
 import RoutineTimeline from "../pages/timelines/RoutineTimeline";
-import Appointments from "../pages/appoinment/Appoinments";
-import SignUp from "../pages/auth/SignUp.jsx";
-import UserProfiles from "../pages/profiles/UserProfiles";
-import SkinPrediction from "../pages/prediction/SkinPrediction"; // අලුත් Chart Page එක Import කළා
-import SignInModal from "../pages/auth/SignInModal.jsx";
+import SkinPrediction from "../pages/prediction/SkinPrediction";
 
-export default function AppRoute({ isDark, toggleTheme, onLoginSuccess, user, isSignInOpen, setIsSignInOpen }) {
+// 2. Pointing to the NEW clean wrappers we just built!
+import AppointmentsPage from "../pages/appointment/Appointments.jsx";
+import UserProfilesPage from "../pages/profiles/UserProfiles.jsx";
+
+// 3. Keep your SignInModal wherever it currently lives until we refactor Auth
+import SignInModal from "../pages/auth/SignInModal";
+
+export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user, isSignInOpen, setIsSignInOpen }) {
     return (
         <>
-            {/* මුළු සයිට් එකටම පොදු සිග්න් ඉන් පොපප් එක */}
             {isSignInOpen && (
                 <SignInModal
                     isDark={isDark}
@@ -22,20 +27,22 @@ export default function AppRoute({ isDark, toggleTheme, onLoginSuccess, user, is
             )}
 
             <Routes>
+                {/* Old Routes */}
                 <Route path="/" element={<Home isDark={isDark} toggleTheme={toggleTheme} onLoginSuccess={onLoginSuccess} setIsSignInOpen={setIsSignInOpen} />} />
                 <Route path="/signup" element={<SignUp isDark={isDark} />} />
                 <Route path="/analysis" element={<SkinAnalysis isDark={isDark} />} />
                 <Route path="/timeline" element={<RoutineTimeline isDark={isDark} />} />
-                <Route path="/appointments" element={<Appointments isDark={isDark} />} />
-
-                {/* අලුතින් එක් කළ Prediction Route එක */}
                 <Route path="/prediction" element={<SkinPrediction isDark={isDark} />} />
 
+                {/* New Refactored Routes */}
+                <Route path="/appointments" element={<AppointmentsPage isDark={isDark} />} />
+
+                {/* Refactored Admin Only Route */}
                 <Route
                     path="/user-profiles"
                     element={
                         user && user.email === 'admin@glowcare.ai'
-                            ? <UserProfiles isDark={isDark} />
+                            ? <UserProfilesPage isDark={isDark} />
                             : <Navigate to="/" replace />
                     }
                 />
