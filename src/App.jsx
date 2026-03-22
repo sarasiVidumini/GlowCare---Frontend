@@ -37,6 +37,7 @@ function App() {
                 <div className={`${isDark ? 'bg-emerald-900' : 'bg-emerald-600'} text-white text-[10px] uppercase tracking-[0.2em] py-2 text-center font-bold`}>
                     Current Climate: High Humidity (82%) — Routines Adjusted for Sri Lanka
                 </div>
+                <div></div>
 
                 <Navbar
                     isDark={isDark}
@@ -53,7 +54,7 @@ function App() {
                         onLoginSuccess={handleLoginSuccess}
                         user={user}
                         isSignInOpen={isSignInOpen} // අලුතින් එක් කළා
-                        setIsSignInOpen={setIsSignInOpen} // අලුතින් එක් කළා
+                        setIsSignInOpen={setIsSignInOpen} // added to better functioning
                     />
                 </main>
 
