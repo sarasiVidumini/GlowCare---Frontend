@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Activity, Leaf, Zap, CheckCircle2, ArrowRight, ThermometerSun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // useNavigate එක් කළා
 import SignUpModal from './../auth/SignUp.jsx';
-import SignInModal from './../auth/SignInModal.jsx';
+import SignInModal from './../auth/SignIn.jsx';
 
 // --- SMART FLOATING LEAVES ---
 const FallingLeaves = ({ isDark }) => {
