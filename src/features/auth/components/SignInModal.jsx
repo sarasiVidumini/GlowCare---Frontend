@@ -43,11 +43,11 @@ export default function SignInModal({ isDark, onClose, onLoginSuccess }) {
 
             // 3. Navigation Logic based on backend role
             if (sessionUser.role === 'admin') {
-                navigate('/');
+                navigate('/user-profiles');
             } else if (sessionUser.role === 'expert' || sessionUser.role === 'doctor') {
                 navigate('/timeline'); // Updated route based on your router setup
             } else {
-                navigate('/user-profiles');
+                navigate('/');
             }
 
             if (onClose) onClose();
