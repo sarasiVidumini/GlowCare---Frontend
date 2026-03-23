@@ -4,7 +4,7 @@ import { X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'; // Added L
 
 import SignUpBanner from '../ui/SignUpBanner';
 import SignUpForm from '../ui/SignUpForm';
-import { authService } from '../../../services/authService'; // IMPORT YOUR SERVICE
+import { authService } from '../../../services/authServices.js'; // IMPORT YOUR SERVICE
 
 export default function SignUpModal({ isDark, onClose }) {
     const navigate = useNavigate();
