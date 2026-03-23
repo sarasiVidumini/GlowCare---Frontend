@@ -9,12 +9,17 @@ import { authService } from '../../../services/authServices.js';
 
 export default function SignUpModal({ isDark, onClose }) {
     const navigate = useNavigate();
-    const [role, setRole] = useState('user'); // 'user' or 'expert'
+    const [role, setRole] = useState('user'); // 'user' maps to CLIENT, 'expert' to EXPERT
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
+    // FIX: Initialized with every field used in the UI to prevent "Uncontrolled" warnings
     const [formData, setFormData] = useState({
-        name: '', email: '', password: '', license: ''
+        name: '',
+        email: '',
+        password: '',
+        licenseNumber: ''
     });
 
     const showToast = (msg, type = 'success') => {
@@ -22,26 +27,48 @@ export default function SignUpModal({ isDark, onClose }) {
         setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
     };
 
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        const backendRole = role === 'user' ? 'CLIENT' : 'EXPERT';
+
+        // 1. Prepare data exactly as the Java RegisterRequest DTO expects
+        const payload = {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: role === 'user' ? 'CLIENT' : 'EXPERT', // Enum match
+            licenseNumber: role === 'expert' ? formData.licenseNumber : null
+        };
 
         try {
-            const response = await authService.register({
-                ...formData,
-                role: backendRole,
-                licenseNumber: role === 'expert' ? formData.license : null
-            });
+            const response = await authService.register(payload);
 
+            // 2. Persist the response
             localStorage.setItem('jwt_token', response.token);
-            const sessionUser = { name: response.name, email: response.email, role: response.role.toLowerCase() };
+            const sessionUser = {
+                name: response.name,
+                email: response.email,
+                role: response.role.toLowerCase()
+            };
             localStorage.setItem('currentUser', JSON.stringify(sessionUser));
 
             showToast("Account Created Successfully!", "success");
-            setTimeout(() => { navigate('/'); if (onClose) onClose(); }, 1500);
+
+            // 3. Navigate after a brief success delay
+            setTimeout(() => {
+                if (onClose) onClose();
+                navigate('/');
+            }, 1500);
+
         } catch (error) {
-            showToast(error.message, "error");
+            // Handle Axios error structure for 400/500 responses
+            const errorMsg = error.response?.data?.message || "Registration failed. Check your details.";
+            showToast(errorMsg, "error");
         } finally {
             setIsLoading(false);
         }
@@ -58,10 +85,10 @@ export default function SignUpModal({ isDark, onClose }) {
                 </div>
             )}
 
-            <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => onClose?.() || navigate('/')} />
+            <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => onClose?.()} />
 
             <div className={`relative w-full max-w-[920px] grid grid-cols-1 lg:grid-cols-2 rounded-[2.5rem] overflow-hidden border shadow-2xl ${isDark ? 'bg-[#0A0A0B] border-white/10' : 'bg-white border-slate-100'}`}>
-                <button onClick={() => onClose?.() || navigate('/')} className="absolute top-6 right-6 z-50 p-2 rounded-full text-slate-500 hover:text-emerald-500 transition-colors">
+                <button onClick={() => onClose?.()} className="absolute top-6 right-6 z-50 p-2 rounded-full text-slate-500 hover:text-emerald-500 transition-colors">
                     <X size={20} />
                 </button>
 
@@ -69,12 +96,17 @@ export default function SignUpModal({ isDark, onClose }) {
 
                 <div className="flex flex-col p-10">
                     <SignUpForm
-                        isDark={isDark} role={role} setRole={setRole}
-                        formData={formData} handleChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})}
-                        handleSubmit={handleSubmit} isLoading={isLoading}
+                        isDark={isDark}
+                        role={role}
+                        setRole={setRole}
+                        formData={formData}
+                        handleChange={handleChange}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        showPassword={showPassword}
+                        setShowPassword={setShowPassword}
                     />
 
-                    {/* Role-aware Google Login */}
                     <div className="mt-6">
                         <GoogleAuth isDark={isDark} role={role === 'user' ? 'CLIENT' : 'EXPERT'} />
                     </div>
