@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
 
 import SignUpBanner from '../ui/SignUpBanner';
 import SignUpForm from '../ui/SignUpForm';
+import { authService } from '../../../services/authService'; // IMPORT YOUR SERVICE
 
 export default function SignUpModal({ isDark, onClose }) {
     const navigate = useNavigate();
 
     const [role, setRole] = useState('user');
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); // New loading state
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+
     const [formData, setFormData] = useState({
-        id: '',
+        id: '', // Used for UI visuals only
         name: '',
         email: '',
         password: '',
-        license: '',
-        role: 'user'
+        license: ''
     });
 
     const showToast = (msg, type = 'success') => {
@@ -29,55 +31,53 @@ export default function SignUpModal({ isDark, onClose }) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
 
-        const existingUsers = JSON.parse(localStorage.getItem('userProfiles')) || [];
-        const storedExperts = JSON.parse(localStorage.getItem('glow_experts')) || [];
+        // Map frontend role to Spring Boot Role Enum
+        const backendRole = role === 'user' ? 'CLIENT' : 'EXPERT';
 
-        const userExists = existingUsers.find(u => u.email === formData.email);
-        const expertExists = storedExperts.find(e => e.email === formData.email);
+        // Prepare data for the Spring Boot RegisterRequest DTO
+        const payload = {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: backendRole,
+            licenseNumber: role === 'expert' ? formData.license : null // Send license only if expert
+        };
 
-        if (userExists || expertExists) {
-            showToast("This email is already registered!", "error");
-            return;
-        }
+        try {
+            // Call our new Service!
+            const response = await authService.register(payload);
 
-        if (role === 'user') {
-            const newUser = {
-                ...formData,
-                role: 'user',
-                createdAt: new Date().toISOString()
+            // Save the JWT token returned by Spring Boot
+            localStorage.setItem('jwt_token', response.token);
+
+            // Save user info for UI purposes
+            const sessionUser = {
+                name: response.name,
+                email: response.email,
+                role: response.role.toLowerCase()
             };
-            const updatedUsers = [...existingUsers, newUser];
-            localStorage.setItem('userProfiles', JSON.stringify(updatedUsers));
-        } else if (role === 'expert') {
-            const newExpertEntry = {
-                id: formData.id || Date.now(),
-                name: formData.name,
-                email: formData.email,
-                password: formData.password,
-                role: "Clinical Expert",
-                license: formData.license,
-                bio: `Licensed professional (ID: ${formData.license}). Available for skin consultations.`
-            };
+            localStorage.setItem('currentUser', JSON.stringify(sessionUser));
 
-            const updatedExpertList = [...storedExperts, newExpertEntry];
-            localStorage.setItem('glow_experts', JSON.stringify(updatedExpertList));
+            showToast(response.message || `Account Created Successfully!`, "success");
+
+            setTimeout(() => {
+                navigate('/');
+                if (onClose) onClose();
+            }, 1500);
+
+        } catch (error) {
+            showToast(error.message, "error");
+        } finally {
+            setIsLoading(false);
         }
-
-        showToast(`Account Created Successfully for ${formData.name}!`, "success");
-
-        setTimeout(() => {
-            navigate('/');
-            // Check if onClose was provided (it might not be if accessed via direct URL)
-            if (onClose) onClose();
-        }, 1500);
     };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            {/* Notification Toast */}
             {notification.show && (
                 <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className={`flex items-center gap-3 px-6 py-4 rounded-[1.5rem] shadow-2xl backdrop-blur-xl border ${notification.type === 'error' ? 'bg-rose-500/90 border-rose-400 text-white' : 'bg-emerald-600/90 border-emerald-400 text-white'}`}>
@@ -87,10 +87,8 @@ export default function SignUpModal({ isDark, onClose }) {
                 </div>
             )}
 
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => { if(onClose) onClose(); else navigate('/'); }} />
 
-            {/* Modal Container */}
             <div className={`relative w-full max-w-[920px] grid grid-cols-1 lg:grid-cols-2 rounded-[2.5rem] overflow-hidden border shadow-2xl animate-in zoom-in-95 duration-300 ${isDark ? 'bg-[#0A0A0B] border-white/10' : 'bg-white border-slate-100'}`}>
 
                 <button onClick={() => { if(onClose) onClose(); else navigate('/'); }} className={`absolute top-6 right-6 z-50 p-2 rounded-full transition-colors ${isDark ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}>
@@ -99,6 +97,7 @@ export default function SignUpModal({ isDark, onClose }) {
 
                 <SignUpBanner />
 
+                {/* NOTE: You might want to pass isLoading to SignUpForm to disable the submit button while waiting */}
                 <SignUpForm
                     isDark={isDark}
                     role={role}
@@ -108,6 +107,7 @@ export default function SignUpModal({ isDark, onClose }) {
                     handleSubmit={handleSubmit}
                     showPassword={showPassword}
                     setShowPassword={setShowPassword}
+                    isLoading={isLoading}
                 />
             </div>
         </div>

@@ -1,85 +1,63 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 
 import LoginForm from '../ui/LoginForm';
 import GoogleAuth from '../ui/GoogleAuth';
-import SignInBanner from '../ui/SignInBanner'; // Imported our new banner!
+import SignInBanner from '../ui/SignInBanner';
+import { authService } from '../../../services/authServices.js'; // IMPORT YOUR SERVICE
 
 export default function SignInModal({ isDark, onClose, onLoginSuccess }) {
     const navigate = useNavigate();
-    const googleButtonRef = useRef(null);
 
     // Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     // --- LOGIC: Email / Password ---
-    const handleEmailLogin = (e) => {
+    const handleEmailLogin = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
-        const userProfiles = JSON.parse(localStorage.getItem('userProfiles')) || [];
-        const foundUser = userProfiles.find(u => u.email === email && u.password === password);
+        try {
+            // Call the Spring Boot backend
+            const response = await authService.login({ email, password });
 
-        if (foundUser) {
-            const userRole = foundUser.email === 'admin@glowcare.ai' ? 'admin' : foundUser.role;
+            // 1. Save the JWT Token
+            localStorage.setItem('jwt_token', response.token);
 
+            // 2. Format user for UI state
             const sessionUser = {
-                name: foundUser.name,
-                picture: `https://ui-avatars.com/api/?name=${foundUser.name}&background=10b981&color=fff`,
-                email: foundUser.email,
-                role: userRole
+                name: response.name,
+                picture: `https://ui-avatars.com/api/?name=${response.name.replace(' ', '+')}&background=10b981&color=fff`,
+                email: response.email,
+                role: response.role.toLowerCase()
             };
 
             localStorage.setItem('currentUser', JSON.stringify(sessionUser));
             if (onLoginSuccess) onLoginSuccess(sessionUser);
 
-            // Navigation Logic
-            if (userRole === 'admin') {
+            // 3. Navigation Logic based on backend role
+            if (sessionUser.role === 'admin') {
                 navigate('/');
-            } else if (foundUser.role === 'expert') {
-                navigate('/routine-timeline');
+            } else if (sessionUser.role === 'expert' || sessionUser.role === 'doctor') {
+                navigate('/timeline'); // Updated route based on your router setup
             } else {
-                navigate('/user-profiles', { state: { profile: foundUser } });
+                navigate('/user-profiles');
             }
+
             if (onClose) onClose();
-        } else {
-            setError('Account not found. Please check your credentials.');
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
         }
     };
-
-    // --- LOGIC: Google Sign-In ---
-    const handleGoogleResponse = useCallback((response) => {
-        try {
-            const base64Url = response.credential.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const userData = JSON.parse(window.atob(base64));
-
-            const userRole = userData.email === 'admin@glowcare.ai' ? 'admin' : 'user';
-
-            const googleUser = {
-                name: userData.name,
-                email: userData.email,
-                role: userRole,
-                picture: userData.picture
-            };
-
-            localStorage.setItem('currentUser', JSON.stringify(googleUser));
-            if (onLoginSuccess) onLoginSuccess(googleUser);
-
-            if (userRole === 'admin') {
-                navigate('/');
-            }
-
-            if (onClose) onClose();
-        } catch (err) {
-            console.error("Google Auth Error:", err);
-            setError("Failed to authenticate with Google.");
-        }
-    }, [navigate, onClose, onLoginSuccess]);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -91,7 +69,6 @@ export default function SignInModal({ isDark, onClose, onLoginSuccess }) {
                     <X size={18} />
                 </button>
 
-                {/* Extracted Banner Component */}
                 <SignInBanner />
 
                 <div className="p-10 flex flex-col justify-center">
@@ -100,7 +77,6 @@ export default function SignInModal({ isDark, onClose, onLoginSuccess }) {
                         <p className="text-[11px] opacity-50 uppercase tracking-widest font-bold mt-1">Secure Environment Access</p>
                     </div>
 
-                    {/* Extracted Form Component */}
                     <LoginForm
                         isDark={isDark}
                         email={email} setEmail={setEmail}
@@ -108,6 +84,7 @@ export default function SignInModal({ isDark, onClose, onLoginSuccess }) {
                         showPassword={showPassword} setShowPassword={setShowPassword}
                         handleEmailLogin={handleEmailLogin}
                         error={error}
+                        isLoading={isLoading} // Pass down to disable button
                     />
 
                     <div className="relative my-8 flex items-center">
@@ -116,12 +93,9 @@ export default function SignInModal({ isDark, onClose, onLoginSuccess }) {
                         <div className="flex-grow border-t border-dashed border-slate-700/30"></div>
                     </div>
 
-                    {/* Extracted Google Component */}
-                    <GoogleAuth
-                        isDark={isDark}
-                        googleButtonRef={googleButtonRef}
-                        handleGoogleResponse={handleGoogleResponse}
-                    />
+                    {/* Google Auth now handles everything securely via Spring Boot! */}
+                    <GoogleAuth isDark={isDark} />
+
                 </div>
             </div>
         </div>
