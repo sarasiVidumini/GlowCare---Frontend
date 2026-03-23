@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Search, User, Droplets, Menu, X, Sparkles, Sun, Moon, LogOut, ChevronDown, ShieldCheck, LogIn } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 
-export default function Navbar({ isDark, toggleTheme, user, onSignInClick, onLogout }) {
+export default function Navbar({ isDark, toggleTheme, user, onLogout }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const navigate = useNavigate(); // Initialize navigation
 
     return (
         <nav className={`sticky top-0 z-50 transition-all duration-300 border-b ${
@@ -63,7 +64,10 @@ export default function Navbar({ isDark, toggleTheme, user, onSignInClick, onLog
                                 )}
                             </div>
                         ) : (
-                            <button onClick={onSignInClick} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-lg ${isDark ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
+                            <button
+                                onClick={() => navigate('/sign-in')} // Navigates to Sign In Page
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-lg ${isDark ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                            >
                                 <LogIn size={14} /> <span>Sign In</span>
                             </button>
                         )}
@@ -112,7 +116,10 @@ export default function Navbar({ isDark, toggleTheme, user, onSignInClick, onLog
                                 </button>
                             </div>
                         ) : (
-                            <button onClick={() => { onSignInClick(); setIsMenuOpen(false); }} className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest ${isDark ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'}`}>
+                            <button
+                                onClick={() => { navigate('/sign-in'); setIsMenuOpen(false); }} // Navigates to Sign In Page and closes menu
+                                className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest ${isDark ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'}`}
+                            >
                                 <LogIn size={16} /> Sign In to GlowCare
                             </button>
                         )}

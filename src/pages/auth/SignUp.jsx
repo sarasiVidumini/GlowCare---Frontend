@@ -6,12 +6,9 @@ export default function SignUpPage({ isDark }) {
     const navigate = useNavigate();
 
     return (
-        // The page background behind the modal overlay
         <div className={`min-h-screen transition-colors duration-700 ${isDark ? 'bg-[#050505]' : 'bg-[#FBFBFD]'}`}>
-
-            {/* Load the feature. If they click close, send them to Home */}
+            {/* Passes onClose down, so clicking X navigates home */}
             <SignUpModal isDark={isDark} onClose={() => navigate('/')} />
-
         </div>
     );
 }

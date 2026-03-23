@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Activity, Leaf, Zap, CheckCircle2, ArrowRight, ThermometerSun } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // useNavigate එක් කළා
-import SignUpModal from './../auth/SignUp.jsx';
-import SignInModal from './../auth/SignIn.jsx';
+import { Sparkles, Activity, Leaf, Zap, ArrowRight, ThermometerSun } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // --- SMART FLOATING LEAVES ---
 const FallingLeaves = ({ isDark }) => {
@@ -33,27 +31,12 @@ const FallingLeaves = ({ isDark }) => {
     );
 };
 
-export default function Home({ isDark, onLoginSuccess }) {
-    const [isSignUpOpen, setIsSignUpOpen] = useState(false);
-    const [isSignInOpen, setIsSignInOpen] = useState(false);
-    const navigate = useNavigate(); // Navigation සඳහා
+export default function Home({ isDark }) {
+    const navigate = useNavigate(); // Navigation
 
     return (
         <div className={`relative min-h-screen transition-all duration-1000 selection:bg-emerald-500/30 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FAFAFA] text-slate-900'}`}>
             <FallingLeaves isDark={isDark} />
-
-            {/* --- MODALS --- */}
-            {isSignUpOpen && (
-                <SignUpModal isDark={isDark} onClose={() => setIsSignUpOpen(false)} />
-            )}
-
-            {isSignInOpen && (
-                <SignInModal
-                    isDark={isDark}
-                    onClose={() => setIsSignInOpen(false)}
-                    onLoginSuccess={onLoginSuccess}
-                />
-            )}
 
             {/* --- HERO SECTION --- */}
             <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 lg:pt-16 pb-12">
@@ -75,14 +58,14 @@ export default function Home({ isDark, onLoginSuccess }) {
                         </p>
 
                         <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-2">
+                            {/* CHANGED TO NAVIGATE TO /sign-up */}
                             <button
-                                onClick={() => setIsSignUpOpen(true)}
+                                onClick={() => navigate('/sign-up')}
                                 className="group px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 active:scale-95"
                             >
                                 Get Started <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                             </button>
 
-                            {/* මෙතන නම වෙනස් කරලා අලුත් Page එකට link කළා */}
                             <button
                                 onClick={() => navigate('/prediction')}
                                 className={`px-8 py-4 rounded-2xl font-bold border transition-all flex items-center justify-center gap-3 active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-200 hover:bg-slate-50 text-slate-900'}`}
@@ -117,7 +100,6 @@ export default function Home({ isDark, onLoginSuccess }) {
                     <p className="text-xs opacity-60 leading-relaxed mb-4">Your routine updates with Colombo's UV/Humidity index.</p>
                 </div>
 
-                {/* මේ බෙන්ටෝ ග්‍රිඩ් එකේ බට්න් එකත් වෙනස් කළා */}
                 <button
                     onClick={() => navigate('/prediction')}
                     className={`md:col-span-2 group relative overflow-hidden rounded-[35px] p-10 transition-all hover:shadow-2xl text-left ${isDark ? 'bg-blue-600' : 'bg-slate-900'} text-white`}
