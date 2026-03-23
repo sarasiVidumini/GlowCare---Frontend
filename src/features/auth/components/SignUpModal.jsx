@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
+import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 import SignUpBanner from '../ui/SignUpBanner';
 import SignUpForm from '../ui/SignUpForm';
-import { authService } from '../../../services/authServices.js'; // IMPORT YOUR SERVICE
+import GoogleAuth from '../ui/GoogleAuth';
+import { authService } from '../../../services/authServices.js';
 
 export default function SignUpModal({ isDark, onClose }) {
     const navigate = useNavigate();
-
-    const [role, setRole] = useState('user');
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false); // New loading state
+    const [role, setRole] = useState('user'); // 'user' or 'expert'
+    const [isLoading, setIsLoading] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
     const [formData, setFormData] = useState({
-        id: '', // Used for UI visuals only
-        name: '',
-        email: '',
-        password: '',
-        license: ''
+        name: '', email: '', password: '', license: ''
     });
 
     const showToast = (msg, type = 'success') => {
@@ -27,48 +22,24 @@ export default function SignUpModal({ isDark, onClose }) {
         setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
     };
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-
-        // Map frontend role to Spring Boot Role Enum
         const backendRole = role === 'user' ? 'CLIENT' : 'EXPERT';
 
-        // Prepare data for the Spring Boot RegisterRequest DTO
-        const payload = {
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            role: backendRole,
-            licenseNumber: role === 'expert' ? formData.license : null // Send license only if expert
-        };
-
         try {
-            // Call our new Service!
-            const response = await authService.register(payload);
+            const response = await authService.register({
+                ...formData,
+                role: backendRole,
+                licenseNumber: role === 'expert' ? formData.license : null
+            });
 
-            // Save the JWT token returned by Spring Boot
             localStorage.setItem('jwt_token', response.token);
-
-            // Save user info for UI purposes
-            const sessionUser = {
-                name: response.name,
-                email: response.email,
-                role: response.role.toLowerCase()
-            };
+            const sessionUser = { name: response.name, email: response.email, role: response.role.toLowerCase() };
             localStorage.setItem('currentUser', JSON.stringify(sessionUser));
 
-            showToast(response.message || `Account Created Successfully!`, "success");
-
-            setTimeout(() => {
-                navigate('/');
-                if (onClose) onClose();
-            }, 1500);
-
+            showToast("Account Created Successfully!", "success");
+            setTimeout(() => { navigate('/'); if (onClose) onClose(); }, 1500);
         } catch (error) {
             showToast(error.message, "error");
         } finally {
@@ -87,28 +58,27 @@ export default function SignUpModal({ isDark, onClose }) {
                 </div>
             )}
 
-            <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => { if(onClose) onClose(); else navigate('/'); }} />
+            <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => onClose?.() || navigate('/')} />
 
-            <div className={`relative w-full max-w-[920px] grid grid-cols-1 lg:grid-cols-2 rounded-[2.5rem] overflow-hidden border shadow-2xl animate-in zoom-in-95 duration-300 ${isDark ? 'bg-[#0A0A0B] border-white/10' : 'bg-white border-slate-100'}`}>
-
-                <button onClick={() => { if(onClose) onClose(); else navigate('/'); }} className={`absolute top-6 right-6 z-50 p-2 rounded-full transition-colors ${isDark ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}>
+            <div className={`relative w-full max-w-[920px] grid grid-cols-1 lg:grid-cols-2 rounded-[2.5rem] overflow-hidden border shadow-2xl ${isDark ? 'bg-[#0A0A0B] border-white/10' : 'bg-white border-slate-100'}`}>
+                <button onClick={() => onClose?.() || navigate('/')} className="absolute top-6 right-6 z-50 p-2 rounded-full text-slate-500 hover:text-emerald-500 transition-colors">
                     <X size={20} />
                 </button>
 
                 <SignUpBanner />
 
-                {/* NOTE: You might want to pass isLoading to SignUpForm to disable the submit button while waiting */}
-                <SignUpForm
-                    isDark={isDark}
-                    role={role}
-                    setRole={setRole}
-                    formData={formData}
-                    handleChange={handleChange}
-                    handleSubmit={handleSubmit}
-                    showPassword={showPassword}
-                    setShowPassword={setShowPassword}
-                    isLoading={isLoading}
-                />
+                <div className="flex flex-col p-10">
+                    <SignUpForm
+                        isDark={isDark} role={role} setRole={setRole}
+                        formData={formData} handleChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})}
+                        handleSubmit={handleSubmit} isLoading={isLoading}
+                    />
+
+                    {/* Role-aware Google Login */}
+                    <div className="mt-6">
+                        <GoogleAuth isDark={isDark} role={role === 'user' ? 'CLIENT' : 'EXPERT'} />
+                    </div>
+                </div>
             </div>
         </div>
     );

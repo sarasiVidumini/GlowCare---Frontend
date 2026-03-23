@@ -15,6 +15,7 @@ import RoutineTimelinePage from "../pages/timelines/RoutineTimeline.jsx";
 // 3. Import the SignInModal directly from the Auth feature!
 import SignInModal from "../features/auth/components/SignInModal";
 import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler.jsx";
+import CompleteProfile from "../pages/CompleteProfile.jsx";
 
 export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user, isSignInOpen, setIsSignInOpen }) {
     return (
@@ -33,6 +34,7 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user, i
                 <Route path="/analysis" element={<SkinAnalysis isDark={isDark} />} />
                 <Route path="/prediction" element={<SkinPrediction isDark={isDark} />} />
                 <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler onLoginSuccess={onLoginSuccess} />} />
+                <Route path="/complete-profile" element={<CompleteProfile isDark={isDark} />} />
 
                 {/* New Refactored Routes */}
                 <Route path="/signup" element={<SignUpPage isDark={isDark} />} />
