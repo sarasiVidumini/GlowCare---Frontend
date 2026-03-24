@@ -7,15 +7,16 @@ import { INITIAL_DB, CONFLICT_RULES } from './utils/routineData';
 import RoutineHeader from './components/RoutineHeader';
 import RoutineSidebar from './components/RoutineSidebar';
 import RoutineList from './components/RoutineList';
-import SmartEngineModals from './components/SmartEngineModal.jsx'; // Fixed extension typo
+import SmartEngineModals from './components/SmartEngineModal.jsx';
 import CommunityChatModals from './components/CommunityChatModals';
 import ExpertConsultModals from './components/ExpertConsultModals';
 
 export default function RoutineHub({ isDark }) {
     const { state } = useLocation();
 
-    // --- ADMIN CHECK ---
-    const activeUser = JSON.parse(localStorage.getItem('activeUser'));
+    // --- ADMIN CHECK (FIXED) ---
+    // We now correctly check 'currentUser' which matches your Sign-In logic
+    const activeUser = JSON.parse(localStorage.getItem('currentUser'));
     const isAdmin = activeUser?.email === 'admin@glowcare.ai';
 
     const [db, setDb] = useState(() => JSON.parse(localStorage.getItem('skin_db_v6')) || INITIAL_DB);
@@ -180,7 +181,6 @@ export default function RoutineHub({ isDark }) {
     const toggleDone = (pName) => setDone(p => ({ ...p, [`${path}-${part}-${time}-${pName}`]: !p[`${path}-${part}-${time}-${pName}`] }));
     const progress = (db[path][part][time] || []).length > 0 ? Math.round(((db[path][part][time] || []).filter(item => done[`${path}-${part}-${time}-${item.name}`]).length / (db[path][part][time] || []).length) * 100) : 0;
 
-    // Fixed Expert Search Logic
     const deleteExpert = (idx) => { if (!isAdmin) return; const newExperts = [...experts]; newExperts.splice(idx, 1); setExperts(newExperts); };
     const saveExpertUpdate = () => {
         if (!isAdmin) return;
