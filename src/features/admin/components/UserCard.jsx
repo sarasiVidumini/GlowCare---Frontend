@@ -2,6 +2,15 @@ import React from 'react';
 import { Camera, Fingerprint, Mail, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
 
 export default function UserCard({ isDark, isAdmin, user, handleAvatarUpload, setEditingUser, deleteUser }) {
+
+    // Helper to format the ID for the "REF" tag
+    // This turns a numeric ID like 1 into "0001" or a UUID string into its last 6 chars
+    const formatRefId = (id) => {
+        if (!id) return 'N/A';
+        const idStr = id.toString();
+        return idStr.length > 6 ? idStr.slice(-6) : idStr.padStart(4, '0');
+    };
+
     return (
         <div className="group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/30 to-blue-500/30 rounded-[3.2rem] blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
@@ -40,7 +49,8 @@ export default function UserCard({ isDark, isAdmin, user, handleAvatarUpload, se
                         <h3 className="text-2xl font-black uppercase italic tracking-tighter truncate leading-tight">{user.name}</h3>
                         <div className="flex items-center gap-3 mt-2">
                             <span className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest">{user.role || 'User'}</span>
-                            <span className="text-[10px] font-bold opacity-40 uppercase tracking-[0.2em]">REF: {user.id?.slice(-6) || 'N/A'}</span>
+                            {/* FIXED: Added .toString() before .slice() to handle numeric IDs from MySQL */}
+                            <span className="text-[10px] font-bold opacity-40 uppercase tracking-[0.2em]">REF: {formatRefId(user.id)}</span>
                         </div>
                     </div>
 
