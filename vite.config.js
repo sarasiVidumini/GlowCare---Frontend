@@ -15,9 +15,20 @@ export default defineConfig({
             protocol: 'ws',
             host: 'localhost',
         },
-        // Optional: add this if you are still seeing connection issues
+        // Polling is helpful if you are using Docker or WSL2
         watch: {
             usePolling: true,
+            interval: 100,
         },
+        // API Proxy: This solves CORS by making the backend look like it's on the same port
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                secure: false,
+                // If your backend URL is /api/v1/experts, this keeps the path intact
+                rewrite: (path) => path
+            }
+        }
     },
 })

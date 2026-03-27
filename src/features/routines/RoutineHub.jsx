@@ -29,6 +29,70 @@ export default function RoutineHub({ isDark }) {
     const [notifEnabled, setNotifEnabled] = useState(false);
 
     // ==========================================
+    // --- PRIVATE CHAT & EXPERT STATES ---
+    // ==========================================
+    const [showExpertsModal, setShowExpertsModal] = useState(false);
+
+    // Core state for Private Chat
+    const [privateChat, setPrivateChat] = useState({
+        open: false,
+        expert: null,
+        messages: [],
+        userId: activeUser?.id || "GC-73-" + Math.floor(1000 + Math.random() * 9000)
+    });
+
+    const [pChatMsg, setPChatMsg] = useState("");
+
+    // State for Editing a Private Message
+    const [pEditModal, setPEditModal] = useState({
+        open: false,
+        id: null,
+        text: ""
+    });
+
+    // --- Private Chat Handlers ---
+    const sendPrivateMessage = () => {
+        if (!pChatMsg.trim()) return;
+        const newMsg = {
+            id: Date.now(),
+            text: pChatMsg,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            sender: 'user'
+        };
+        setPrivateChat({
+            ...privateChat,
+            messages: [...privateChat.messages, newMsg]
+        });
+        setPChatMsg("");
+    };
+
+    const deletePrivateMsg = (id) => {
+        setPrivateChat({
+            ...privateChat,
+            messages: privateChat.messages.filter(m => m.id !== id)
+        });
+    };
+
+    const openPrivateEdit = (id, text) => {
+        setPEditModal({ open: true, id, text });
+    };
+
+    const savePrivateEdit = () => {
+        setPrivateChat({
+            ...privateChat,
+            messages: privateChat.messages.map(m =>
+                m.id === pEditModal.id ? { ...m, text: pEditModal.text } : m
+            )
+        });
+        setPEditModal({ open: false, id: null, text: "" });
+    };
+
+    const copyMessage = (text) => {
+        navigator.clipboard.writeText(text);
+        // Optional: Trigger a toast notification here
+    };
+
+    // ==========================================
     // --- DATABASE SYNC LOGIC ---
     // ==========================================
 
@@ -140,7 +204,6 @@ export default function RoutineHub({ isDark }) {
     const [nextRoutine, setNextRoutine] = useState(null);
     const alarmAudio = useRef(new Audio("assets/sounds/alarm-audio.mp3"));
 
-    // --- ADDED THIS: Fixed the handleBellClick ReferenceError ---
     const handleBellClick = () => {
         if (!notifEnabled) {
             alarmAudio.current.play().then(() => {
@@ -156,9 +219,7 @@ export default function RoutineHub({ isDark }) {
     const validateIngredients = async (name) => {
         setIsScanning(true);
         await new Promise(r => setTimeout(r, 1500));
-
         const currentRoutine = db[path]?.[part]?.[time] || [];
-
         const conflict = CONFLICT_RULES.find(rule => {
             const hasTrigger = name.toLowerCase().includes(rule.trigger.toLowerCase());
             const hasConflict = currentRoutine.some(p =>
@@ -166,7 +227,6 @@ export default function RoutineHub({ isDark }) {
             );
             return hasTrigger && hasConflict;
         });
-
         setIsScanning(false);
         return conflict || null;
     };
@@ -184,10 +244,7 @@ export default function RoutineHub({ isDark }) {
     // ==========================================
     // --- UI STATE HANDLERS ---
     // ==========================================
-
-    // ADDED THIS: Essential for Sidebar and Chat modals
     const [showChat, setShowChat] = useState(false);
-    const [showExpertsModal, setShowExpertsModal] = useState(false);
 
     const toggleDone = (pName) => {
         const key = `${path}-${part}-${time}-${pName}`;
@@ -257,9 +314,25 @@ export default function RoutineHub({ isDark }) {
                 alarmAudio={alarmAudio}
             />
 
-            {/* Placeholder for other modals to avoid further ReferenceErrors */}
             {showChat && <CommunityChatModals isDark={isDark} showChat={showChat} setShowChat={setShowChat} activeUser={activeUser} isAdmin={isAdmin} />}
-            {showExpertsModal && <ExpertConsultModals isDark={isDark} showExpertsModal={showExpertsModal} setShowExpertsModal={setShowExpertsModal} isAdmin={isAdmin} />}
+
+            <ExpertConsultModals
+                isDark={isDark}
+                showExpertsModal={showExpertsModal}
+                setShowExpertsModal={setShowExpertsModal}
+                isAdmin={isAdmin}
+                privateChat={privateChat}
+                setPrivateChat={setPrivateChat}
+                pChatMsg={pChatMsg}
+                setPChatMsg={setPChatMsg}
+                sendPrivateMessage={sendPrivateMessage}
+                deletePrivateMsg={deletePrivateMsg}
+                openPrivateEdit={openPrivateEdit}
+                copyMessage={copyMessage}
+                pEditModal={pEditModal}
+                setPEditModal={setPEditModal}
+                savePrivateEdit={savePrivateEdit}
+            />
         </div>
     );
 }

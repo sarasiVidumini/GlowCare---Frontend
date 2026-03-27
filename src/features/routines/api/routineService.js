@@ -1,4 +1,4 @@
-import api from '../../../api/axios.js';
+import api from '../../../api/api.js';
 
 export const routineService = {
     getAllSteps: async () => {

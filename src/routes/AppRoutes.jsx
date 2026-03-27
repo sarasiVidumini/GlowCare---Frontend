@@ -15,10 +15,14 @@ import AppointmentsPage from "../pages/appointment/Appointments.jsx";
 import UserProfilesPage from "../pages/profiles/UserProfiles.jsx";
 import RoutineTimelinePage from "../pages/timelines/RoutineTimeline.jsx";
 
-// NEW: Admin Dashboard Import
+// Import for the Experts Page
+import ExpertConsultModals from "../features/routines/components/ExpertConsultModals.jsx";
+
+// Admin Dashboard Import
 import AdminDashboard from "../features/admin/adminDashboard/AdminDashboard.jsx";
 
 export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user }) {
+    // Identity Check for Admin privileges
     const isAdmin = user?.email === 'admin@glowcare.ai';
 
     return (
@@ -36,6 +40,19 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
             <Route path="/timeline" element={<ProtectedRoute user={user}><RoutineTimelinePage isDark={isDark} toggleTheme={toggleTheme} user={user} /></ProtectedRoute>} />
             <Route path="/appointments" element={<ProtectedRoute user={user}><AppointmentsPage isDark={isDark} toggleTheme={toggleTheme} user={user} /></ProtectedRoute>} />
             <Route path="/complete-profile" element={<ProtectedRoute user={user}><CompleteProfile isDark={isDark} /></ProtectedRoute>} />
+
+            {/* --- NEW: THE CLINICAL NETWORK ROUTE --- */}
+            {/* Navigating to /experts will now render the Expert Panel specifically */}
+            <Route path="/experts" element={
+                <ProtectedRoute user={user}>
+                    <ExpertConsultModals
+                        isDark={isDark}
+                        isAdmin={isAdmin}
+                        user={user}
+                        showExpertsModal={true} // Forces the modal to be open on this route
+                    />
+                </ProtectedRoute>
+            } />
 
             {/* --- ADMIN ONLY: THE NEXUS ENCLAVE --- */}
             <Route path="/admin/dashboard" element={
