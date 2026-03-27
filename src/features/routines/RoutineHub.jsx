@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { BellRing } from 'lucide-react';
 
 import FallingLeaves from '../../components/ui/FallingLeaves';
 import { INITIAL_DB } from './utils/routineData';
@@ -11,7 +12,9 @@ import SmartEngineModals from './components/SmartEngineModal.jsx';
 import CommunityChatModals from './components/CommunityChatModals';
 import ExpertConsultModals from './components/ExpertConsultModals';
 
+// APIs
 import { routineService } from './api/routineService.js';
+import { notificationService } from './api/notificationService.js';
 
 export default function RoutineHub({ isDark }) {
     const { state } = useLocation();
@@ -29,11 +32,15 @@ export default function RoutineHub({ isDark }) {
     const [notifEnabled, setNotifEnabled] = useState(false);
 
     // ==========================================
+    // --- NOTIFICATION BANNER STATE ---
+    // ==========================================
+    const [activeNotifs, setActiveNotifs] = useState([]);
+
+    // ==========================================
     // --- PRIVATE CHAT & EXPERT STATES ---
     // ==========================================
     const [showExpertsModal, setShowExpertsModal] = useState(false);
 
-    // Core state for Private Chat
     const [privateChat, setPrivateChat] = useState({
         open: false,
         expert: null,
@@ -42,15 +49,8 @@ export default function RoutineHub({ isDark }) {
     });
 
     const [pChatMsg, setPChatMsg] = useState("");
+    const [pEditModal, setPEditModal] = useState({ open: false, id: null, text: "" });
 
-    // State for Editing a Private Message
-    const [pEditModal, setPEditModal] = useState({
-        open: false,
-        id: null,
-        text: ""
-    });
-
-    // --- Private Chat Handlers ---
     const sendPrivateMessage = () => {
         if (!pChatMsg.trim()) return;
         const newMsg = {
@@ -59,38 +59,25 @@ export default function RoutineHub({ isDark }) {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             sender: 'user'
         };
-        setPrivateChat({
-            ...privateChat,
-            messages: [...privateChat.messages, newMsg]
-        });
+        setPrivateChat({ ...privateChat, messages: [...privateChat.messages, newMsg] });
         setPChatMsg("");
     };
 
     const deletePrivateMsg = (id) => {
-        setPrivateChat({
-            ...privateChat,
-            messages: privateChat.messages.filter(m => m.id !== id)
-        });
+        setPrivateChat({ ...privateChat, messages: privateChat.messages.filter(m => m.id !== id) });
     };
 
-    const openPrivateEdit = (id, text) => {
-        setPEditModal({ open: true, id, text });
-    };
+    const openPrivateEdit = (id, text) => setPEditModal({ open: true, id, text });
 
     const savePrivateEdit = () => {
         setPrivateChat({
             ...privateChat,
-            messages: privateChat.messages.map(m =>
-                m.id === pEditModal.id ? { ...m, text: pEditModal.text } : m
-            )
+            messages: privateChat.messages.map(m => m.id === pEditModal.id ? { ...m, text: pEditModal.text } : m)
         });
         setPEditModal({ open: false, id: null, text: "" });
     };
 
-    const copyMessage = (text) => {
-        navigator.clipboard.writeText(text);
-        // Optional: Trigger a toast notification here
-    };
+    const copyMessage = (text) => navigator.clipboard.writeText(text);
 
     // ==========================================
     // --- DATABASE SYNC LOGIC ---
@@ -98,6 +85,11 @@ export default function RoutineHub({ isDark }) {
 
     useEffect(() => {
         fetchDataFromDB();
+
+        // Fetch Active Notifications for the Banner
+        notificationService.getActiveNotifications()
+            .then(data => setActiveNotifs(data))
+            .catch(err => console.error("Failed to load notifications", err));
     }, []);
 
     const fetchDataFromDB = async () => {
@@ -142,11 +134,9 @@ export default function RoutineHub({ isDark }) {
         };
 
         try {
-            if (modal.type === 'add') {
-                await routineService.createStep(payload);
-            } else {
-                await routineService.updateStep(modal.id, payload);
-            }
+            if (modal.type === 'add') await routineService.createStep(payload);
+            else await routineService.updateStep(modal.id, payload);
+
             await fetchDataFromDB();
             setModal({ open: false, type: 'add', id: null, value: "", stepTime: "" });
             setConflictData(null);
@@ -257,6 +247,11 @@ export default function RoutineHub({ isDark }) {
         ? Math.round(((db[path][part][time]).filter(item => done[`${path}-${part}-${time}-${item.name}`]).length / (db[path][part][time]).length) * 100)
         : 0;
 
+    // Filter notifications to match the current path (Natural, Chemical, Ayurvedic) case-insensitively
+    const filteredNotifs = activeNotifs.filter(
+        notif => notif.pathCategory?.toLowerCase() === path.toLowerCase()
+    );
+
     return (
         <div className={`min-h-screen p-4 lg:p-6 relative overflow-hidden transition-all duration-700 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FBFBFD] text-slate-900'}`}>
             <FallingLeaves isDark={isDark} />
@@ -266,6 +261,49 @@ export default function RoutineHub({ isDark }) {
                     <button onClick={handleSeedDatabase} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95">
                         Sync INITIAL_DB to Database
                     </button>
+                </div>
+            )}
+
+            {/* --- DYNAMIC NOTIFICATION BANNER (Sleek Pill Design - MAX 1) --- */}
+            {filteredNotifs.length > 0 && (
+                <div className="max-w-[1200px] mx-auto mb-4 flex flex-col gap-3 relative z-[150]">
+                    {filteredNotifs
+                        .slice(0, 1) // 🚀 CRITICAL FIX: This forces the UI to only ever show ONE notification!
+                        .map(notif => (
+                            <div
+                                key={notif.id}
+                                className={`w-full flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:pr-2.5 rounded-[2rem] sm:rounded-full border transition-all duration-500 shadow-xl animate-in slide-in-from-top-4 ${
+                                    isDark ? 'bg-[#141417]/95 border-white/5 shadow-black/50' : 'bg-white border-slate-200 shadow-slate-200/50'
+                                }`}
+                            >
+                                <div className="flex items-center gap-4 px-2 sm:px-1">
+                                    {/* Left: Circular Icon with Red Notification Dot */}
+                                    <div className={`relative w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${
+                                        isDark ? 'bg-[#1A1A1D] border-white/5 text-emerald-500' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                                    }`}>
+                                        <BellRing size={18} className="animate-[wiggle_1s_ease-in-out_infinite]" />
+                                        <span className={`absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-500 border-2 rounded-full ${isDark ? 'border-[#141417]' : 'border-white'}`}></span>
+                                    </div>
+
+                                    {/* Middle: Title & Message */}
+                                    <div className="py-2">
+                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-emerald-500 mb-0.5">
+                                            {notif.title}
+                                        </h4>
+                                        <h2 className={`text-sm sm:text-base font-black italic uppercase leading-tight tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                            {notif.message}
+                                        </h2>
+                                    </div>
+                                </div>
+
+                                {/* Right: Green Pill Button for Time */}
+                                <div className="mt-2 sm:mt-0 w-full sm:w-auto shrink-0">
+                                    <div className="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 text-black rounded-full text-[10px] font-black uppercase tracking-widest text-center shadow-lg shadow-emerald-500/20 cursor-default">
+                                        Schedule: {notif.scheduledTime}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                 </div>
             )}
 
