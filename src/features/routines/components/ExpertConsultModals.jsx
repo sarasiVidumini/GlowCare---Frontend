@@ -30,8 +30,10 @@ export default function ExpertConsultModals(props) {
     const [experts, setExperts] = useState([]);
     const [expertSearch, setExpertSearch] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // UPDATED: Added 'email' to ensure it doesn't get lost during edits
     const [expertEditModal, setExpertEditModal] = useState({
-        open: false, id: null, fullName: "", expertiseArea: "", licenseNumber: "", bio: ""
+        open: false, id: null, fullName: "", expertiseArea: "", licenseNumber: "", email: "", bio: ""
     });
 
     useEffect(() => {
@@ -51,8 +53,6 @@ export default function ExpertConsultModals(props) {
             // Fix for the Redirect/CORS error: Redirect user to sign-in if token is rejected
             if (error.code === 'ERR_NETWORK' || error.response?.status === 401 || error.response?.status === 403) {
                 console.warn("Security rejection. Verifying credentials...");
-                // Uncomment if you want to force re-login:
-                // navigate('/sign-in');
             }
             setExperts([]);
         } finally {
@@ -60,14 +60,21 @@ export default function ExpertConsultModals(props) {
         }
     };
 
+    // UPDATED: Improved error handling and state reset
     const handleSaveExpert = async (payload) => {
         try {
-            if (expertEditModal.id) await expertService.updateExpert(expertEditModal.id, payload);
-            else await expertService.createExpert(payload);
+            if (payload.id) {
+                await expertService.updateExpert(payload.id, payload);
+            } else {
+                await expertService.createExpert(payload);
+            }
+
             await loadExperts();
-            setExpertEditModal({ open: false, id: null, fullName: "", expertiseArea: "", licenseNumber: "", bio: "" });
+            // Reset state fully including the email field
+            setExpertEditModal({ open: false, id: null, fullName: "", expertiseArea: "", licenseNumber: "", email: "", bio: "" });
         } catch (error) {
-            alert("Sync Failed.");
+            alert("Update Failed. Check console for details.");
+            console.error(error);
         }
     };
 
