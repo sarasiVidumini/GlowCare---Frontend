@@ -37,9 +37,10 @@ export default function RoutineHub({ isDark }) {
     const [activeNotifs, setActiveNotifs] = useState([]);
 
     // ==========================================
-    // --- PRIVATE CHAT & EXPERT STATES ---
+    // --- PRIVATE CHAT & UI STATES ---
     // ==========================================
     const [showExpertsModal, setShowExpertsModal] = useState(false);
+    const [showChat, setShowChat] = useState(false);
 
     const [privateChat, setPrivateChat] = useState({
         open: false,
@@ -82,11 +83,9 @@ export default function RoutineHub({ isDark }) {
     // ==========================================
     // --- DATABASE SYNC LOGIC ---
     // ==========================================
-
     useEffect(() => {
         fetchDataFromDB();
 
-        // Fetch Active Notifications for the Banner
         notificationService.getActiveNotifications()
             .then(data => setActiveNotifs(data))
             .catch(err => console.error("Failed to load notifications", err));
@@ -185,9 +184,8 @@ export default function RoutineHub({ isDark }) {
     };
 
     // ==========================================
-    // --- SMART ENGINE & NOTIFICATION LOGIC ---
+    // --- SMART ENGINE LOGIC ---
     // ==========================================
-
     const [isScanning, setIsScanning] = useState(false);
     const [conflictData, setConflictData] = useState(null);
     const [activeAlarm, setActiveAlarm] = useState(null);
@@ -231,11 +229,6 @@ export default function RoutineHub({ isDark }) {
         confirmSave(modal.value);
     };
 
-    // ==========================================
-    // --- UI STATE HANDLERS ---
-    // ==========================================
-    const [showChat, setShowChat] = useState(false);
-
     const toggleDone = (pName) => {
         const key = `${path}-${part}-${time}-${pName}`;
         const newDone = { ...done, [key]: !done[key] };
@@ -247,7 +240,6 @@ export default function RoutineHub({ isDark }) {
         ? Math.round(((db[path][part][time]).filter(item => done[`${path}-${part}-${time}-${item.name}`]).length / (db[path][part][time]).length) * 100)
         : 0;
 
-    // Filter notifications to match the current path (Natural, Chemical, Ayurvedic) case-insensitively
     const filteredNotifs = activeNotifs.filter(
         notif => notif.pathCategory?.toLowerCase() === path.toLowerCase()
     );
@@ -264,11 +256,11 @@ export default function RoutineHub({ isDark }) {
                 </div>
             )}
 
-            {/* --- DYNAMIC NOTIFICATION BANNER (Sleek Pill Design - MAX 1) --- */}
+            {/* --- DYNAMIC NOTIFICATION BANNER --- */}
             {filteredNotifs.length > 0 && (
                 <div className="max-w-[1200px] mx-auto mb-4 flex flex-col gap-3 relative z-[150]">
                     {filteredNotifs
-                        .slice(0, 1) // 🚀 CRITICAL FIX: This forces the UI to only ever show ONE notification!
+                        .slice(0, 1)
                         .map(notif => (
                             <div
                                 key={notif.id}
@@ -277,15 +269,12 @@ export default function RoutineHub({ isDark }) {
                                 }`}
                             >
                                 <div className="flex items-center gap-4 px-2 sm:px-1">
-                                    {/* Left: Circular Icon with Red Notification Dot */}
                                     <div className={`relative w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${
                                         isDark ? 'bg-[#1A1A1D] border-white/5 text-emerald-500' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
                                     }`}>
                                         <BellRing size={18} className="animate-[wiggle_1s_ease-in-out_infinite]" />
                                         <span className={`absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-500 border-2 rounded-full ${isDark ? 'border-[#141417]' : 'border-white'}`}></span>
                                     </div>
-
-                                    {/* Middle: Title & Message */}
                                     <div className="py-2">
                                         <h4 className="text-[9px] font-black uppercase tracking-widest text-emerald-500 mb-0.5">
                                             {notif.title}
@@ -295,8 +284,6 @@ export default function RoutineHub({ isDark }) {
                                         </h2>
                                     </div>
                                 </div>
-
-                                {/* Right: Green Pill Button for Time */}
                                 <div className="mt-2 sm:mt-0 w-full sm:w-auto shrink-0">
                                     <div className="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 text-black rounded-full text-[10px] font-black uppercase tracking-widest text-center shadow-lg shadow-emerald-500/20 cursor-default">
                                         Schedule: {notif.scheduledTime}
@@ -352,8 +339,6 @@ export default function RoutineHub({ isDark }) {
                 alarmAudio={alarmAudio}
             />
 
-            {showChat && <CommunityChatModals isDark={isDark} showChat={showChat} setShowChat={setShowChat} activeUser={activeUser} isAdmin={isAdmin} />}
-
             <ExpertConsultModals
                 isDark={isDark}
                 showExpertsModal={showExpertsModal}
@@ -370,6 +355,15 @@ export default function RoutineHub({ isDark }) {
                 pEditModal={pEditModal}
                 setPEditModal={setPEditModal}
                 savePrivateEdit={savePrivateEdit}
+            />
+
+            {/* 🚀 REAL-TIME COMMUNITY CHAT MODAL */}
+            <CommunityChatModals
+                isDark={isDark}
+                showChat={showChat}
+                setShowChat={setShowChat}
+                activeUser={activeUser}
+                isAdmin={isAdmin}
             />
         </div>
     );

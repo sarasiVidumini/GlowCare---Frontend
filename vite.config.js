@@ -8,6 +8,10 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    // 🚀 FIX FOR SOCKJS 'global is not defined' WHITE SCREEN ERROR:
+    define: {
+        global: 'window',
+    },
     server: {
         port: 5173,
         strictPort: true, // Forces Vite to stay on 5173

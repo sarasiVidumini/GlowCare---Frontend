@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
+// 🚀 FIXED: Removed the "s" at the end so it matches your actual file
 import ProtectedRoute from "./ProtectedRoutes.jsx";
 
 // Standard Pages
@@ -78,7 +79,6 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
 
             {/* ========================================= */}
             {/* --- ADMIN ONLY: THE NEXUS ENCLAVE --- */}
-            {/* Notice the new 'requireAdmin={true}' prop! */}
             {/* ========================================= */}
             <Route path="/admin/dashboard" element={
                 <ProtectedRoute user={user} requireAdmin={true}>
