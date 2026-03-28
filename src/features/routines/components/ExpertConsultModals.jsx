@@ -1,149 +1,109 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ExpertListModal from './expert/ExpertListModal';
-import ExpertFormModal from './expert/ExpertFormModal';
-import PrivateChatModal from './expert/PrivateChatModal';
-import PrivateMsgEditModal from './expert/PrivateMsgEditModal';
-import { expertService } from '../api/expertService';
+import { X, Search, User } from 'lucide-react';
+import axios from 'axios';
+import PrivateChatModal from './expert/PrivateChatModal.jsx';
 
-export default function ExpertConsultModals(props) {
-    const navigate = useNavigate();
+export default function ExpertConsultModals({ isDark, showExpertsModal, setShowExpertsModal }) {
 
-    const {
-        isDark = true,
-        isAdmin = false,
-        showExpertsModal = false,
-        setShowExpertsModal,
-        privateChat = { open: false, messages: [], expert: null, userId: "" },
-        setPrivateChat,
-        pChatMsg = "",
-        setPChatMsg,
-        pEditModal = { open: false, id: null, text: "" },
-        setPEditModal,
-        savePrivateEdit,
-        sendPrivateMessage,
-        copyMessage,
-        openPrivateEdit,
-        deletePrivateMsg
-    } = props;
+    const activeUser = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('activeUser'));
+    const isAdmin = activeUser?.email === 'admin@glowcare.ai';
 
     const [experts, setExperts] = useState([]);
-    const [expertSearch, setExpertSearch] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // UPDATED: Added 'email' to ensure it doesn't get lost during edits
-    const [expertEditModal, setExpertEditModal] = useState({
-        open: false, id: null, fullName: "", expertiseArea: "", licenseNumber: "", email: "", bio: ""
-    });
+    const [privateChat, setPrivateChat] = useState({ open: false, expert: null });
 
     useEffect(() => {
-        if (showExpertsModal) {
-            loadExperts();
-        }
+        if (!showExpertsModal) return;
+
+        const fetchExperts = async () => {
+            try {
+                const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                const res = await axios.get('http://localhost:8080/api/v1/users', { headers });
+                const expertUsers = res.data.filter(u => u.role === 'EXPERT');
+                setExperts(expertUsers);
+            } catch (error) {
+                console.error("Failed to fetch experts:", error);
+            }
+        };
+        fetchExperts();
     }, [showExpertsModal]);
 
-    const loadExperts = async () => {
-        setIsLoading(true);
-        try {
-            const data = await expertService.getAllExperts();
-            setExperts(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error("Clinical Database Sync Error:", error);
-
-            // Fix for the Redirect/CORS error: Redirect user to sign-in if token is rejected
-            if (error.code === 'ERR_NETWORK' || error.response?.status === 401 || error.response?.status === 403) {
-                console.warn("Security rejection. Verifying credentials...");
-            }
-            setExperts([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // UPDATED: Improved error handling and state reset
-    const handleSaveExpert = async (payload) => {
-        try {
-            if (payload.id) {
-                await expertService.updateExpert(payload.id, payload);
-            } else {
-                await expertService.createExpert(payload);
-            }
-
-            await loadExperts();
-            // Reset state fully including the email field
-            setExpertEditModal({ open: false, id: null, fullName: "", expertiseArea: "", licenseNumber: "", email: "", bio: "" });
-        } catch (error) {
-            alert("Update Failed. Check console for details.");
-            console.error(error);
-        }
-    };
-
-    const handleDeleteExpert = async (id) => {
-        if (window.confirm("Terminate clinical access?")) {
-            try {
-                await expertService.deleteExpert(id);
-                await loadExperts();
-            } catch (error) {
-                alert("Action denied.");
-            }
-        }
-    };
-
     const openPrivateChat = (expert) => {
-        setPrivateChat({ ...privateChat, open: true, expert });
-        if (setShowExpertsModal) setShowExpertsModal(false);
+        setPrivateChat({ open: true, expert: expert });
+        setShowExpertsModal(false);
     };
 
-    const filteredExperts = experts.filter(exp => {
-        const query = expertSearch.toLowerCase();
-        return exp.fullName?.toLowerCase().includes(query) || exp.expertiseArea?.toLowerCase().includes(query);
-    });
-
-    // Handle closing from the /experts page
-    const handleClose = () => {
-        if (setShowExpertsModal) setShowExpertsModal(false);
-        navigate('/timeline'); // Always go back to timeline
+    const getExpertDetails = (name) => {
+        if (name.toLowerCase().includes("ruvinda")) return { title: "Skin Therapist", desc: "10 years experience in skin therapy" };
+        if (name.toLowerCase().includes("thilina")) return { title: "Product Chemist", desc: "Medical Degree - Sri Jayawardanapura Univ." };
+        return { title: "Clinical Specialist", desc: "Certified GlowCare Professional" };
     };
+
+    const filteredExperts = experts.filter(exp => exp.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
         <>
-            <ExpertListModal
-                {...props}
-                experts={experts}
-                isLoading={isLoading}
-                filteredExperts={filteredExperts}
-                expertSearch={expertSearch}
-                setExpertSearch={setExpertSearch}
-                openPrivateChat={openPrivateChat}
-                deleteExpert={handleDeleteExpert}
-                setExpertEditModal={setExpertEditModal}
-                onClose={handleClose}
-            />
+            {showExpertsModal && (
+                <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className={`w-full max-w-4xl p-8 rounded-[3rem] border shadow-2xl relative ${isDark ? 'bg-[#0D0D0F] border-white/10' : 'bg-[#FBFBFD] border-slate-200'}`}>
 
-            <ExpertFormModal
-                {...props}
-                expertEditModal={expertEditModal}
-                setExpertEditModal={setExpertEditModal}
-                handleSaveExpert={handleSaveExpert}
-            />
+                        <button onClick={() => setShowExpertsModal(false)} className={`absolute top-8 right-8 p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-slate-500' : 'hover:bg-slate-200 text-slate-400'}`}>
+                            <X size={20} />
+                        </button>
+
+                        <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            Expert <span className="text-emerald-500">Panel.</span>
+                        </h2>
+
+                        <div className={`flex items-center gap-3 p-4 rounded-2xl mb-8 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <Search size={18} className="text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by specialty or clinical focus..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className={`w-full bg-transparent text-sm font-bold outline-none ${isDark ? 'text-white' : 'text-slate-900'}`}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {filteredExperts.map((expert, idx) => {
+                                const details = getExpertDetails(expert.name);
+                                return (
+                                    <div key={idx} className={`p-6 rounded-[2rem] border transition-all hover:-translate-y-1 ${isDark ? 'bg-white/5 border-white/10 hover:border-emerald-500/50' : 'bg-white border-slate-200 hover:border-emerald-500/50 shadow-lg shadow-slate-200/50'}`}>
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                                <User size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className={`text-lg font-black uppercase tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`}>{expert.name}</h3>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500">{details.title}</p>
+                                            </div>
+                                        </div>
+                                        <p className={`text-xs font-bold mb-6 opacity-60 ${isDark ? 'text-white' : 'text-slate-700'}`}>{details.desc}</p>
+
+                                        <button
+                                            onClick={() => openPrivateChat(expert)}
+                                            className="w-full py-3.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                        >
+                                            Message Expert
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <PrivateChatModal
-                {...props}
+                isDark={isDark}
                 privateChat={privateChat}
                 setPrivateChat={setPrivateChat}
-                pChatMsg={pChatMsg}
-                setPChatMsg={setPChatMsg}
-                sendPrivateMessage={sendPrivateMessage}
-                copyMessage={copyMessage}
-                openPrivateEdit={openPrivateEdit}
-                deletePrivateMsg={deletePrivateMsg}
-            />
-
-            <PrivateMsgEditModal
-                isDark={isDark}
-                pEditModal={pEditModal}
-                setPEditModal={setPEditModal}
-                savePrivateEdit={savePrivateEdit}
+                activeUser={activeUser}
             />
         </>
     );

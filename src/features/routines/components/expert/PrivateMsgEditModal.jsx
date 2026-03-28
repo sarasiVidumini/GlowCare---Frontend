@@ -5,7 +5,7 @@ export default function PrivateMsgEditModal({ isDark, pEditModal, setPEditModal,
     if (!pEditModal || !pEditModal.open) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[5000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[6000] flex items-center justify-center p-4">
             <div className={`w-full max-w-sm p-8 rounded-[2.5rem] border transition-all duration-500 scale-in-center ${
                 isDark
                     ? 'bg-[#141417] border-white/10 shadow-[0_0_50px_rgba(16,185,129,0.1)]'
