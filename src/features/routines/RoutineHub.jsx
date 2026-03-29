@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BellRing } from 'lucide-react';
 
 import FallingLeaves from '../../components/ui/FallingLeaves';
 import { INITIAL_DB } from './utils/routineData';
@@ -12,14 +11,15 @@ import SmartEngineModals from './components/SmartEngineModal.jsx';
 import CommunityChatModals from './components/CommunityChatModals';
 import ExpertConsultModals from './components/ExpertConsultModals';
 
-// APIs
+// 🚀 ALARM OVERLAY
+import RoutineAlarmOverlay from './components/RoutineAlarmOverlay';
+
 import { routineService } from './api/routineService.js';
-import { notificationService } from './api/notificationService.js';
 
 export default function RoutineHub({ isDark }) {
     const { state } = useLocation();
 
-    const activeUser = JSON.parse(localStorage.getItem('currentUser'));
+    const activeUser = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('activeUser'));
     const isAdmin = activeUser?.email === 'admin@glowcare.ai';
 
     const [db, setDb] = useState(INITIAL_DB);
@@ -27,75 +27,96 @@ export default function RoutineHub({ isDark }) {
     const [part, setPart] = useState(state?.zone ? (state.zone.charAt(0).toUpperCase() + state.zone.slice(1)) : 'Face');
     const [time, setTime] = useState('morning');
     const [done, setDone] = useState(() => JSON.parse(localStorage.getItem('done_tasks')) || {});
-
     const [modal, setModal] = useState({ open: false, type: 'add', id: null, value: "", stepTime: "" });
     const [notifEnabled, setNotifEnabled] = useState(false);
 
-    // ==========================================
-    // --- NOTIFICATION BANNER STATE ---
-    // ==========================================
-    const [activeNotifs, setActiveNotifs] = useState([]);
+    // 🚀 RAW Database Set & Calculated Next Routine
+    const [allRoutines, setAllRoutines] = useState([]);
+    const [nextRoutine, setNextRoutine] = useState(null);
 
-    // ==========================================
-    // --- PRIVATE CHAT & UI STATES ---
-    // ==========================================
     const [showExpertsModal, setShowExpertsModal] = useState(false);
     const [showChat, setShowChat] = useState(false);
-
-    const [privateChat, setPrivateChat] = useState({
-        open: false,
-        expert: null,
-        messages: [],
-        userId: activeUser?.id || "GC-73-" + Math.floor(1000 + Math.random() * 9000)
-    });
-
-    const [pChatMsg, setPChatMsg] = useState("");
-    const [pEditModal, setPEditModal] = useState({ open: false, id: null, text: "" });
-
-    const sendPrivateMessage = () => {
-        if (!pChatMsg.trim()) return;
-        const newMsg = {
-            id: Date.now(),
-            text: pChatMsg,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            sender: 'user'
-        };
-        setPrivateChat({ ...privateChat, messages: [...privateChat.messages, newMsg] });
-        setPChatMsg("");
-    };
-
-    const deletePrivateMsg = (id) => {
-        setPrivateChat({ ...privateChat, messages: privateChat.messages.filter(m => m.id !== id) });
-    };
-
-    const openPrivateEdit = (id, text) => setPEditModal({ open: true, id, text });
-
-    const savePrivateEdit = () => {
-        setPrivateChat({
-            ...privateChat,
-            messages: privateChat.messages.map(m => m.id === pEditModal.id ? { ...m, text: pEditModal.text } : m)
-        });
-        setPEditModal({ open: false, id: null, text: "" });
-    };
-
-    const copyMessage = (text) => navigator.clipboard.writeText(text);
+    const [privateChat, setPrivateChat] = useState({ open: false, expert: null });
 
     // ==========================================
-    // --- DATABASE SYNC LOGIC ---
+    // 🧠 THE GLOBAL TIME ENGINE
+    // ==========================================
+    useEffect(() => {
+        if (!allRoutines || allRoutines.length === 0) {
+            setNextRoutine(null);
+            return;
+        }
+
+        const now = new Date();
+        let upcoming = [];
+
+        allRoutines.forEach(step => {
+            if (step.scheduledTime) {
+                try {
+                    // Clean and parse "07:00 AM"
+                    const timeString = step.scheduledTime.trim();
+                    const ampmMatch = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                    const militaryMatch = timeString.match(/(\d+):(\d+)/);
+
+                    let hours = 0; let mins = 0;
+
+                    if (ampmMatch) {
+                        hours = parseInt(ampmMatch[1]);
+                        mins = parseInt(ampmMatch[2]);
+                        const period = ampmMatch[3].toUpperCase();
+                        if (period === 'PM' && hours < 12) hours += 12;
+                        if (period === 'AM' && hours === 12) hours = 0;
+                    } else if (militaryMatch) {
+                        hours = parseInt(militaryMatch[1]);
+                        mins = parseInt(militaryMatch[2]);
+                    } else {
+                        return; // Invalid format
+                    }
+
+                    let stepDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, mins, 0, 0);
+
+                    // If time has passed today, schedule it for tomorrow
+                    if (stepDate.getTime() <= now.getTime()) {
+                        stepDate.setDate(stepDate.getDate() + 1);
+                    }
+
+                    // 🚀 CRITICAL FIX: Explicitly map database properties to UI properties
+                    upcoming.push({
+                        ...step,
+                        name: step.productName,        // Mapped for UI
+                        stepTime: step.scheduledTime,  // Mapped for UI
+                        path: step.pathCategory,       // Mapped for UI
+                        dateObj: stepDate              // Mathematical Time
+                    });
+                } catch (err) {
+                    console.warn("⚠️ Skipping invalid time in DB:", step.scheduledTime);
+                }
+            }
+        });
+
+        // Sort by closest absolute time
+        upcoming.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+        if (upcoming.length > 0) {
+            setNextRoutine(upcoming[0]);
+        } else {
+            setNextRoutine(null);
+        }
+    }, [allRoutines]);
+
+    // ==========================================
+    // DATABASE FETCH & SYNC
     // ==========================================
     useEffect(() => {
         fetchDataFromDB();
-
-        notificationService.getActiveNotifications()
-            .then(data => setActiveNotifs(data))
-            .catch(err => console.error("Failed to load notifications", err));
     }, []);
 
     const fetchDataFromDB = async () => {
         try {
             const apiData = await routineService.getAllSteps();
-            const newDb = JSON.parse(JSON.stringify(INITIAL_DB));
+            setAllRoutines(apiData); // 🚀 This instantly triggers the Time Engine!
 
+            const newDb = JSON.parse(JSON.stringify(INITIAL_DB));
             Object.keys(newDb).forEach(pCat => {
                 Object.keys(newDb[pCat]).forEach(zCat => {
                     newDb[pCat][zCat].morning = [];
@@ -116,10 +137,9 @@ export default function RoutineHub({ isDark }) {
                     });
                 }
             });
-
             setDb(newDb);
         } catch (error) {
-            console.error("Failed to load from database, using fallback", error);
+            console.error("Failed to load from database", error);
         }
     };
 
@@ -136,11 +156,11 @@ export default function RoutineHub({ isDark }) {
             if (modal.type === 'add') await routineService.createStep(payload);
             else await routineService.updateStep(modal.id, payload);
 
+            // 🚀 Fetch instantly to update the Next Routine Notification at the top
             await fetchDataFromDB();
             setModal({ open: false, type: 'add', id: null, value: "", stepTime: "" });
-            setConflictData(null);
         } catch (error) {
-            alert("Database Error: Could not save formula.");
+            alert("Database Error.");
         }
     };
 
@@ -150,82 +170,23 @@ export default function RoutineHub({ isDark }) {
             await routineService.deleteStep(id);
             await fetchDataFromDB();
         } catch (error) {
-            alert("Database Error: Could not delete formula.");
+            alert("Database Error.");
         }
     };
 
-    const handleSeedDatabase = async () => {
-        if (!isAdmin) return;
-        const confirmSync = window.confirm("Are you sure you want to upload INITIAL_DB to the database?");
-        if (!confirmSync) return;
-
-        try {
-            for (const pathCat of Object.keys(INITIAL_DB)) {
-                for (const zoneCat of Object.keys(INITIAL_DB[pathCat])) {
-                    for (const timeSlot of ['morning', 'night']) {
-                        const steps = INITIAL_DB[pathCat][zoneCat][timeSlot];
-                        for (const product of steps) {
-                            await routineService.createStep({
-                                productName: product.name,
-                                scheduledTime: product.stepTime,
-                                timeOfDay: timeSlot.toUpperCase(),
-                                pathCategory: pathCat,
-                                zone: zoneCat
-                            });
-                        }
-                    }
-                }
-            }
-            alert("Success! Database seeded.");
-            await fetchDataFromDB();
-        } catch (error) {
-            alert("Seeding failed.");
-        }
-    };
-
-    // ==========================================
-    // --- SMART ENGINE LOGIC ---
-    // ==========================================
     const [isScanning, setIsScanning] = useState(false);
     const [conflictData, setConflictData] = useState(null);
-    const [activeAlarm, setActiveAlarm] = useState(null);
-    const [nextRoutine, setNextRoutine] = useState(null);
-    const alarmAudio = useRef(new Audio("assets/sounds/alarm-audio.mp3"));
 
     const handleBellClick = () => {
-        if (!notifEnabled) {
-            alarmAudio.current.play().then(() => {
-                alarmAudio.current.pause();
-                alarmAudio.current.currentTime = 0;
-                setNotifEnabled(true);
-            }).catch(() => setNotifEnabled(true));
-        } else {
-            setNotifEnabled(false);
-        }
-    };
-
-    const validateIngredients = async (name) => {
-        setIsScanning(true);
-        await new Promise(r => setTimeout(r, 1500));
-        const currentRoutine = db[path]?.[part]?.[time] || [];
-        const conflict = CONFLICT_RULES.find(rule => {
-            const hasTrigger = name.toLowerCase().includes(rule.trigger.toLowerCase());
-            const hasConflict = currentRoutine.some(p =>
-                rule.incompatibleWith.some(inc => p.name.toLowerCase().includes(inc.toLowerCase()))
-            );
-            return hasTrigger && hasConflict;
-        });
-        setIsScanning(false);
-        return conflict || null;
+        setNotifEnabled(!notifEnabled);
+        if (!notifEnabled && "Notification" in window) Notification.requestPermission();
     };
 
     const saveProduct = async () => {
         if (!isAdmin) return;
-        const conflict = await validateIngredients(modal.value);
-        if (conflict) {
-            setConflictData({ ...conflict, original: modal.value });
-            return;
-        }
+        setIsScanning(true);
+        await new Promise(r => setTimeout(r, 1500));
+        setIsScanning(false);
         confirmSave(modal.value);
     };
 
@@ -240,131 +201,25 @@ export default function RoutineHub({ isDark }) {
         ? Math.round(((db[path][part][time]).filter(item => done[`${path}-${part}-${time}-${item.name}`]).length / (db[path][part][time]).length) * 100)
         : 0;
 
-    const filteredNotifs = activeNotifs.filter(
-        notif => notif.pathCategory?.toLowerCase() === path.toLowerCase()
-    );
-
     return (
-        <div className={`min-h-screen p-4 lg:p-6 relative overflow-hidden transition-all duration-700 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FBFBFD] text-slate-900'}`}>
+        <div className={`min-h-screen p-4 lg:p-6 pt-12 relative overflow-hidden transition-all duration-700 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FBFBFD] text-slate-900'}`}>
+
+            {/* 🚀 THE REAL ALARM */}
+            <RoutineAlarmOverlay isDark={isDark} nextRoutine={nextRoutine} />
+
             <FallingLeaves isDark={isDark} />
 
-            {isAdmin && (
-                <div className="max-w-[1200px] mx-auto flex justify-end mb-4 relative z-[200]">
-                    <button onClick={handleSeedDatabase} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95">
-                        Sync INITIAL_DB to Database
-                    </button>
-                </div>
-            )}
-
-            {/* --- DYNAMIC NOTIFICATION BANNER --- */}
-            {filteredNotifs.length > 0 && (
-                <div className="max-w-[1200px] mx-auto mb-4 flex flex-col gap-3 relative z-[150]">
-                    {filteredNotifs
-                        .slice(0, 1)
-                        .map(notif => (
-                            <div
-                                key={notif.id}
-                                className={`w-full flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:pr-2.5 rounded-[2rem] sm:rounded-full border transition-all duration-500 shadow-xl animate-in slide-in-from-top-4 ${
-                                    isDark ? 'bg-[#141417]/95 border-white/5 shadow-black/50' : 'bg-white border-slate-200 shadow-slate-200/50'
-                                }`}
-                            >
-                                <div className="flex items-center gap-4 px-2 sm:px-1">
-                                    <div className={`relative w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${
-                                        isDark ? 'bg-[#1A1A1D] border-white/5 text-emerald-500' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                    }`}>
-                                        <BellRing size={18} className="animate-[wiggle_1s_ease-in-out_infinite]" />
-                                        <span className={`absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-500 border-2 rounded-full ${isDark ? 'border-[#141417]' : 'border-white'}`}></span>
-                                    </div>
-                                    <div className="py-2">
-                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-emerald-500 mb-0.5">
-                                            {notif.title}
-                                        </h4>
-                                        <h2 className={`text-sm sm:text-base font-black italic uppercase leading-tight tracking-wide ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                            {notif.message}
-                                        </h2>
-                                    </div>
-                                </div>
-                                <div className="mt-2 sm:mt-0 w-full sm:w-auto shrink-0">
-                                    <div className="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 text-black rounded-full text-[10px] font-black uppercase tracking-widest text-center shadow-lg shadow-emerald-500/20 cursor-default">
-                                        Schedule: {notif.scheduledTime}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                </div>
-            )}
-
+            {/* 🚀 THE UPCOMING HEADER NOTIFICATION */}
             <RoutineHeader isDark={isDark} nextRoutine={nextRoutine} path={path} />
 
             <div className="max-w-[1200px] mx-auto grid grid-cols-12 gap-6 relative z-10">
-                <RoutineSidebar
-                    isDark={isDark}
-                    notifEnabled={notifEnabled}
-                    handleBellClick={handleBellClick}
-                    setShowChat={setShowChat}
-                    path={path}
-                    setPath={setPath}
-                    part={part}
-                    setShowExpertsModal={setShowExpertsModal}
-                    progress={progress}
-                />
-
-                <RoutineList
-                    isDark={isDark}
-                    time={time}
-                    setTime={setTime}
-                    isAdmin={isAdmin}
-                    setModal={setModal}
-                    db={db}
-                    path={path}
-                    part={part}
-                    done={done}
-                    toggleDone={toggleDone}
-                    deleteProduct={deleteProduct}
-                    setPart={setPart}
-                />
+                <RoutineSidebar isDark={isDark} notifEnabled={notifEnabled} handleBellClick={handleBellClick} setShowChat={setShowChat} path={path} setPath={setPath} part={part} setShowExpertsModal={setShowExpertsModal} progress={progress} />
+                <RoutineList isDark={isDark} time={time} setTime={setTime} isAdmin={isAdmin} setModal={setModal} db={db} path={path} part={part} done={done} toggleDone={toggleDone} deleteProduct={deleteProduct} setPart={setPart} />
             </div>
 
-            <SmartEngineModals
-                isDark={isDark}
-                isScanning={isScanning}
-                conflictData={conflictData}
-                setConflictData={setConflictData}
-                confirmSave={confirmSave}
-                modal={modal}
-                setModal={setModal}
-                saveProduct={saveProduct}
-                activeAlarm={activeAlarm}
-                setActiveAlarm={setActiveAlarm}
-                alarmAudio={alarmAudio}
-            />
-
-            <ExpertConsultModals
-                isDark={isDark}
-                showExpertsModal={showExpertsModal}
-                setShowExpertsModal={setShowExpertsModal}
-                isAdmin={isAdmin}
-                privateChat={privateChat}
-                setPrivateChat={setPrivateChat}
-                pChatMsg={pChatMsg}
-                setPChatMsg={setPChatMsg}
-                sendPrivateMessage={sendPrivateMessage}
-                deletePrivateMsg={deletePrivateMsg}
-                openPrivateEdit={openPrivateEdit}
-                copyMessage={copyMessage}
-                pEditModal={pEditModal}
-                setPEditModal={setPEditModal}
-                savePrivateEdit={savePrivateEdit}
-            />
-
-            {/* 🚀 REAL-TIME COMMUNITY CHAT MODAL */}
-            <CommunityChatModals
-                isDark={isDark}
-                showChat={showChat}
-                setShowChat={setShowChat}
-                activeUser={activeUser}
-                isAdmin={isAdmin}
-            />
+            <SmartEngineModals isDark={isDark} isScanning={isScanning} conflictData={conflictData} setConflictData={setConflictData} confirmSave={confirmSave} modal={modal} setModal={setModal} saveProduct={saveProduct} />
+            <ExpertConsultModals isDark={isDark} showExpertsModal={showExpertsModal} setShowExpertsModal={setShowExpertsModal} isAdmin={isAdmin} privateChat={privateChat} setPrivateChat={setPrivateChat} />
+            <CommunityChatModals isDark={isDark} showChat={showChat} setShowChat={setShowChat} activeUser={activeUser} isAdmin={isAdmin} />
         </div>
     );
 }
