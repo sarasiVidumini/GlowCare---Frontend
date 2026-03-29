@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
-// 🚀 FIXED: Removed the "s" at the end so it matches your actual file
 import ProtectedRoute from "./ProtectedRoutes.jsx";
 
 // Standard Pages
@@ -14,8 +13,10 @@ import NotFound from "../pages/notFound/NotFound.jsx";
 import SignUpPage from "../pages/auth/SignUp.jsx";
 import SignInPage from "../pages/auth/SignIn.jsx";
 import SkinAnalysisPage from "../pages/skin/SkinAnalysis.jsx";
-import AppointmentsPage from "../pages/appointment/Appointments.jsx";
 import RoutineTimelinePage from "../pages/timelines/RoutineTimeline.jsx";
+
+// 🚀 Make sure this points to your new AppointmentHub file!
+import AppointmentHub from "../features/appointments/AppointmentHub.jsx";
 
 // Modals & Admin
 import ExpertConsultModals from "../features/routines/components/ExpertConsultModals.jsx";
@@ -38,6 +39,9 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
             <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler onLoginSuccess={onLoginSuccess} />} />
             <Route path="/prediction" element={<SkinPrediction isDark={isDark} />} />
 
+            {/* 🚀 MOVED TO PUBLIC: Anyone can view the directory, but the form blocks booking if not logged in! */}
+            <Route path="/appointments" element={<AppointmentHub isDark={isDark} />} />
+
             {/* ========================================= */}
             {/* --- PROTECTED USER ROUTES --- */}
             {/* ========================================= */}
@@ -50,12 +54,6 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
             <Route path="/timeline" element={
                 <ProtectedRoute user={user}>
                     <RoutineTimelinePage isDark={isDark} toggleTheme={toggleTheme} user={user} />
-                </ProtectedRoute>
-            } />
-
-            <Route path="/appointments" element={
-                <ProtectedRoute user={user}>
-                    <AppointmentsPage isDark={isDark} toggleTheme={toggleTheme} user={user} />
                 </ProtectedRoute>
             } />
 
@@ -72,7 +70,7 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
                         isDark={isDark}
                         isAdmin={isAdmin}
                         user={user}
-                        showExpertsModal={true} // Forces the modal to be open on this route
+                        showExpertsModal={true}
                     />
                 </ProtectedRoute>
             } />
