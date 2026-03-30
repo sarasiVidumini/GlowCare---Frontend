@@ -1,32 +1,32 @@
 import React from 'react';
 import StatCard from './StatCard';
-import { Users, ShieldCheck, Activity, Zap } from 'lucide-react';
+import { Users, UserCheck, Calendar, Package } from 'lucide-react';
 
 export default function StatGrid({ stats, isDark }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             <StatCard
-                label="Total Entities"
+                label="Total Users"
                 value={stats?.totalUsers || 0}
                 icon={<Users size={20} />}
                 isDark={isDark}
             />
             <StatCard
-                label="Security Index"
-                value={`${stats?.systemEfficiency || 99.9}%`}
-                icon={<ShieldCheck size={20} />}
-                isDark={isDark}
-            />
-            <StatCard
-                label="Expert Network"
+                label="Total Experts"
                 value={stats?.totalExperts || 0}
-                icon={<Activity size={20} />}
+                icon={<UserCheck size={20} />}
                 isDark={isDark}
             />
             <StatCard
-                label="Server Latency"
-                value="24ms"
-                icon={<Zap size={20} />}
+                label="Active Appointments"
+                value={stats?.totalAppointments || 0}
+                icon={<Calendar size={20} />}
+                isDark={isDark}
+            />
+            <StatCard
+                label="Routine Products"
+                value={stats?.totalRoutineProducts || 0}
+                icon={<Package size={20} />}
                 isDark={isDark}
             />
         </div>

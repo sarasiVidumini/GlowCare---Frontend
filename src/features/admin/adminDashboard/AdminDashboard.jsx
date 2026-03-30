@@ -2,20 +2,20 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
     fetchNexusStats,
-    performSystemMaintenance,
     fetchAllAdmins,
     updateAdminRecord,
-    deleteAdminRecord
+    deleteAdminRecord,
+    performSystemMaintenance
 } from '../adminDashboard/api/adminService.js';
 
-// Sub-Section Imports
-import DashboardHeader from '../adminDashboard/components/DashboardHeader.jsx';
-import StatGrid from '../adminDashboard/components/StatGrid.jsx';
-import ActivityTable from '../adminDashboard/components/ActivityTable.jsx';
-import SystemHealth from '../adminDashboard/components/SystemHealth.jsx';
-import QuickActions from '../adminDashboard/components/QuickActions.jsx';
-import AdminInfoTable from '../adminDashboard/components/AdminInfoTable.jsx';
-import AlertBanner from '../components/AlertBanner.jsx';
+import DashboardHeader from './components/DashboardHeader';
+import StatGrid from './components/StatGrid';
+import FeatureInsightGrid from './components/FeatureInsightGrid';
+import ActivityTable from './components/ActivityTable';
+import AdminInfoTable from './components/AdminInfoTable';
+import QuickActions from './components/QuickActions';
+import SystemHealth from './components/SystemHealth';
+import AlertBanner from '../components/AlertBanner';
 
 export default function AdminDashboard({ isDark }) {
     const [data, setData] = useState(null);
@@ -23,96 +23,91 @@ export default function AdminDashboard({ isDark }) {
     const [loading, setLoading] = useState(true);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
-    const showAlert = (msg, type) => {
+    // 🚀 Helper to trigger the superb Alert Banner
+    const showAlert = (msg, type = 'success') => {
         setAlert({ show: true, msg, type });
         setTimeout(() => setAlert({ show: false, msg: '', type: '' }), 4000);
     };
 
-    // Combined Data Fetcher
-    const loadAllNexusData = useCallback(async () => {
+    const loadData = useCallback(async () => {
         try {
-            const [statsRes, adminRes] = await Promise.all([
-                fetchNexusStats(),
-                fetchAllAdmins()
-            ]);
-            setData(statsRes.data);
-            setAdminList(adminRes.data);
+            const [stats, admins] = await Promise.all([fetchNexusStats(), fetchAllAdmins()]);
+            setData(stats.data);
+            setAdminList(admins.data);
         } catch (err) {
-            console.error("Critical Sync Failure", err);
-            showAlert("Synchronization Protocol Failed", "error");
+            console.error("Sync Failure:", err);
+            showAlert("Neural Link Interrupted", "error");
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => {
-        loadAllNexusData();
-    }, [loadAllNexusData]);
+    useEffect(() => { loadData(); }, [loadData]);
 
-    // --- CRUD ACTIONS ---
+    // --- 🛡️ ADMIN MANAGEMENT ACTIONS ---
+
     const handleUpdateAdmin = async (updatedAdmin) => {
         try {
             await updateAdminRecord(updatedAdmin);
-            showAlert("Neural Identity Updated", "success");
-            loadAllNexusData(); // Refresh list
+            showAlert("Identity Updated Successfully");
+            loadData(); // Refresh lists
         } catch (err) {
-            showAlert("Update Access Denied", "error");
+            showAlert("Update Protocol Denied", "error");
         }
     };
 
     const handleDeleteAdmin = async (id) => {
-        if (!window.confirm("CRITICAL: Terminate this admin access permanently?")) return;
+        if (!window.confirm("CRITICAL: Permanent termination of this access?")) return;
         try {
             await deleteAdminRecord(id);
-            showAlert("Admin Purged from System", "success");
-            loadAllNexusData();
+            showAlert("Admin Access Revoked", "success");
+            loadData();
         } catch (err) {
-            showAlert("Termination Sequence Interrupted", "error");
+            showAlert("Termination Failed", "error");
         }
     };
 
     const handleMaintenance = async () => {
         try {
-            showAlert("Initiating System Cache Reboot...", "success");
+            showAlert("Initiating Neural Cache Purge...", "success");
             await performSystemMaintenance();
-            await loadAllNexusData();
-            showAlert("Neural Cache Purged Successfully", "success");
+            showAlert("System Rejuvenated Successfully");
+            loadData();
         } catch (err) {
-            showAlert("Maintenance Protocol Interrupted", "error");
+            showAlert("Maintenance Interrupted", "error");
         }
     };
 
-    if (loading) {
-        return (
-            <div className={`h-screen flex flex-col items-center justify-center ${isDark ? 'bg-[#050505]' : 'bg-slate-50'}`}>
-                <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-40 animate-pulse">
-                    Synchronizing Neural Links
-                </p>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className={`h-screen flex flex-col items-center justify-center ${isDark ? 'bg-[#050505]' : 'bg-slate-50'}`}>
+            <div className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-20">Syncing Nexus</p>
+        </div>
+    );
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`relative min-h-screen p-8 transition-colors duration-700 ${
-                isDark ? 'bg-[#050505] text-white' : 'bg-[#FBFBFD] text-slate-900'
-            }`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={`min-h-screen p-8 transition-all duration-700 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FBFBFD] text-slate-900'}`}
         >
             <AlertBanner alert={alert} />
 
             <div className="max-w-7xl mx-auto relative z-10">
                 <DashboardHeader />
+
+                {/* Section 1: Business KPIs */}
                 <StatGrid stats={data} isDark={isDark} />
 
+                {/* Section 2: AI & Clinical Insight Cards */}
+                <FeatureInsightGrid stats={data} isDark={isDark} />
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mt-12">
-                    <div className="lg:col-span-2 flex flex-col gap-10">
-                        {/* Table 1: Activity Logs */}
+                    <div className="lg:col-span-2 space-y-10">
+                        {/* Recent Activity Log */}
                         <ActivityTable activities={data?.activities} isDark={isDark} />
 
-                        {/* Table 2: Admin Management (The New Table) */}
+                        {/* Admin Identity Management */}
                         <AdminInfoTable
                             admins={adminList}
                             isDark={isDark}
@@ -121,17 +116,22 @@ export default function AdminDashboard({ isDark }) {
                         />
                     </div>
 
-                    <div className="flex flex-col gap-8">
-                        <SystemHealth efficiency={data?.systemEfficiency || 99} isDark={isDark} />
+                    <div className="space-y-8">
+                        <SystemHealth efficiency={data?.systemEfficiency || 99.9} isDark={isDark} />
                         <QuickActions onMaintenance={handleMaintenance} isDark={isDark} />
 
-                        {/* Network Visual */}
-                        <div className={`p-6 rounded-[2.5rem] border ${isDark ? 'border-white/5 bg-white/2' : 'border-slate-100 bg-slate-50/50'}`}>
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">Network Topology</p>
-                            <div className="flex gap-2">
-                                {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="flex-1 h-1 rounded-full bg-emerald-500/20 overflow-hidden">
-                                        <div className="h-full bg-emerald-500 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                        {/* Neural Architecture Visual */}
+                        <div className={`p-8 rounded-[3rem] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100 shadow-sm'}`}>
+                            <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-4">Neural Architecture</p>
+                            <div className="flex gap-1.5">
+                                {[...Array(8)].map((_, i) => (
+                                    <div key={i} className="flex-1 h-1.5 rounded-full bg-emerald-500/10 overflow-hidden">
+                                        <motion.div
+                                            initial={{ x: "-100%" }}
+                                            animate={{ x: "100%" }}
+                                            transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.1 }}
+                                            className="h-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -139,7 +139,9 @@ export default function AdminDashboard({ isDark }) {
                     </div>
                 </div>
             </div>
-            <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+
+            {/* Subtle Aesthetic Glow */}
+            <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-emerald-500/[0.03] blur-[120px] rounded-full pointer-events-none" />
         </motion.div>
     );
 }

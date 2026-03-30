@@ -3,8 +3,9 @@ import { Calendar, ShieldCheck, CheckCircle, User as UserIcon } from 'lucide-rea
 import axios from 'axios';
 
 export default function BookingForm({ isDark, selectedDoctor }) {
-    // Automatically grab the logged-in user
-    const activeUser = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('activeUser'));
+    // 1. Retrieve the active user safely
+    const activeUser = JSON.parse(localStorage.getItem('currentUser')) ||
+        JSON.parse(localStorage.getItem('activeUser'));
 
     const [bookingStatus, setBookingStatus] = useState('idle');
     const [bookingError, setBookingError] = useState('');
@@ -13,6 +14,7 @@ export default function BookingForm({ isDark, selectedDoctor }) {
         e.preventDefault();
         setBookingError('');
 
+        // Validation: Ensure user is logged in
         if (!activeUser || !activeUser.email) {
             setBookingError("Authentication Error: Please log in to make an appointment.");
             return;
@@ -21,50 +23,65 @@ export default function BookingForm({ isDark, selectedDoctor }) {
         const dateVal = e.target.date.value;
         const reasonVal = e.target.reason.value;
 
-        // FRONTEND DATE VALIDATION
+        // 2. Availability Validation
         const [year, month, day] = dateVal.split('-');
         const dateObj = new Date(year, month - 1, day);
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const selectedDay = dayNames[dateObj.getDay()];
 
-        if (!selectedDoctor.available.includes(selectedDay)) {
-            setBookingError(`Dr. ${selectedDoctor.name} is not available on ${selectedDay}s. Available days: ${selectedDoctor.available.join(', ')}`);
+        if (selectedDoctor && !selectedDoctor.available.includes(selectedDay)) {
+            setBookingError(`Dr. ${selectedDoctor.name} is not available on ${selectedDay}s. Available: ${selectedDoctor.available.join(', ')}`);
             return;
         }
 
-        // Clean the Physician ID
-        let cleanPhysicianId = selectedDoctor.id;
+        // 3. Clean the Physician ID (Ensures it's a number)
+        let cleanPhysicianId = selectedDoctor?.id;
         if (typeof cleanPhysicianId === 'string') {
             cleanPhysicianId = parseInt(cleanPhysicianId.replace(/\D/g, ''), 10);
         }
 
-        // 🚀 SEND TO BACKEND
         try {
-            const token = localStorage.getItem('jwt_token') || localStorage.getItem('token');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            // 4. TOKEN HANDLING: Get and clean the JWT
+            const rawToken = localStorage.getItem('jwt_token') || localStorage.getItem('token');
 
-            await axios.post('http://localhost:8080/api/v1/clinical/book', {
-                userEmail: activeUser.email, // 🚀 Uses EMAIL instead of ID to perfectly match the database!
+            if (!rawToken) {
+                setBookingError("Session Expired: Please log in again to verify your identity.");
+                return;
+            }
+
+            // Remove any extra quotes that might cause a 401
+            const cleanToken = rawToken.replace(/"/g, '').trim();
+
+            const config = {
+                headers: {
+                    'Authorization': `Bearer ${cleanToken}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            const payload = {
+                userEmail: activeUser.email,
                 physicianId: cleanPhysicianId,
                 date: dateVal,
                 reason: reasonVal
-            }, { headers });
+            };
+
+            // 5. BACKEND CALL
+            await axios.post('http://localhost:8080/api/v1/clinical/book', payload, config);
 
             setBookingStatus('success');
             e.target.reset();
         } catch (error) {
-            const errData = error.response?.data;
-            let finalErrorMessage = "Booking failed to connect to the server.";
+            console.error("Booking Error Detail:", error.response);
+            const status = error.response?.status;
 
-            if (typeof errData === 'string') {
-                finalErrorMessage = errData;
-            } else if (errData && errData.message) {
-                finalErrorMessage = errData.message;
-            } else if (errData && errData.error) {
-                finalErrorMessage = errData.error;
+            if (status === 401) {
+                setBookingError("Unauthorized: Your session has expired. Please log out and log back in.");
+            } else if (status === 403) {
+                setBookingError("Access Denied: You do not have permission to book this slot.");
+            } else {
+                setBookingError(error.response?.data?.message || "Booking failed. Please try again later.");
             }
-
-            setBookingError(finalErrorMessage);
         }
     };
 
@@ -77,7 +94,7 @@ export default function BookingForm({ isDark, selectedDoctor }) {
                         <CheckCircle size={40} className="text-white" />
                     </div>
                     <h3 className="text-2xl font-black italic uppercase">BOOKED!</h3>
-                    <p className="text-slate-500 mt-4 text-sm font-medium">Appointment confirmed with Dr. {selectedDoctor.name}.</p>
+                    <p className="text-slate-500 mt-4 text-sm font-medium">Appointment confirmed with Dr. {selectedDoctor?.name}.</p>
                     <button onClick={() => setBookingStatus('idle')} className="mt-8 text-[10px] font-black uppercase text-emerald-500 hover:text-emerald-400">
                         New Booking
                     </button>
@@ -93,7 +110,7 @@ export default function BookingForm({ isDark, selectedDoctor }) {
                         <div className="p-2 bg-blue-500/20 rounded-full text-blue-500"><UserIcon size={16}/></div>
                         <div>
                             <p className="text-[9px] font-black uppercase tracking-widest opacity-50">Booking For</p>
-                            <p className="text-sm font-bold uppercase">{activeUser?.name || "Guest"}</p>
+                            <p className="text-sm font-bold uppercase">{activeUser?.name || "Guest User"}</p>
                         </div>
                     </div>
 
