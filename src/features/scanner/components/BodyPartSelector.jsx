@@ -2,15 +2,36 @@ import React from 'react';
 import { Scan } from 'lucide-react';
 
 export default function BodyPartSelector({ isDark, onSelect }) {
-    // FIX: Cleaned up the URLs so they are standard strings without markdown brackets
+
     const parts = [
-        { id: 'Face', img: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&q=80' },
-        { id: 'Back', img: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=500&q=80' },
-        { id: 'Body', img: 'https://images.unsplash.com/photo-1506003023533-88cd72dc4f06?w=500&q=80' },
-        { id: 'Hands', img: 'https://images.unsplash.com/photo-1618534005876-02e08e6f1f50?w=500&q=80' },
-        { id: 'Feet', img: 'https://images.unsplash.com/photo-1536250550556-2db108155e85?w=500&q=80' },
-        { id: 'Scalp', img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=500&q=80' },
-        { id: 'Lips', img: 'https://images.unsplash.com/photo-1586525198428-225f6f12cff5?w=500&q=80' }
+        {
+            id: 'Face',
+            img: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=500&q=80' // clear face close-up
+        },
+        {
+            id: 'Back',
+            img: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=500&q=80' // bare back skin
+        },
+        {
+            id: 'Body',
+            img: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=500&q=80' // arms/legs skin
+        },
+        {
+            id: 'Hands',
+            img: 'https://images.pexels.com/photos/545014/pexels-photo-545014.jpeg?auto=compress&cs=tinysrgb&w=500'
+        },
+        {
+            id: 'Feet',
+            img: 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=500'
+        },
+        {
+            id: 'Scalp',
+            img: 'https://images.unsplash.com/photo-1600180758890-6b94519a8ba6?w=500&q=80' // hair/scalp focus
+        },
+        {
+            id: 'Lips',
+            img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=500&q=80' // lips close-up
+        }
     ];
 
     return (
