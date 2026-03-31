@@ -1,75 +1,95 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 import FallingLeaves from '../../components/ui/FallingLeaves';
+import BodyPartSelector from '../scanner/components/BodyPartSelector.jsx';
 import Questionnaire from './components/Questionnaire';
-import ImageCapture from './components/ImageCapture';
 import ProcessingOverlay from './components/ProcessingOverlay';
 import ResultsDashboard from './components/ResultDashBoard.jsx';
 
 export default function ScannerHub({ isDark }) {
     const navigate = useNavigate();
 
-    // Flow State: 0 = Questions, 1 = Camera, 2 = Results
     const [step, setStep] = useState(0);
-
-    // Data State
-    const [answers, setAnswers] = useState({ feel: '', concern: '', exposure: '' });
-    const [image, setImage] = useState(null);
+    const [bodyPart, setBodyPart] = useState('');
+    const [questions, setQuestions] = useState([]);
+    const [answers, setAnswers] = useState({});
     const [aiResults, setAiResults] = useState(null);
-
-    // UI State
     const [isScanning, setIsScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
 
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImage(URL.createObjectURL(file));
-            analyzeData(file);
+    // 🛡️ HELPER: Guarantees the token is perfectly clean
+    const getCleanToken = () => {
+        const token = localStorage.getItem('jwt_token');
+        if (!token) return null;
+        return token.replace(/^"|"$/g, '').trim(); // Removes sneaky quotes and spaces
+    };
+
+    const handleBodyPartSelect = async (part) => {
+        setBodyPart(part);
+
+        try {
+            const token = getCleanToken();
+            if (!token) throw new Error("No token found");
+
+            const res = await axios.get(`http://localhost:8080/api/v1/analysis/questions/${part}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            setQuestions(res.data);
+            setStep(1);
+        } catch (error) {
+            console.error("Failed to fetch questions", error);
+            alert("Session Expired or Unauthorized. Please log out and log back in.");
+            // Optional: navigate('/'); to force them to login
         }
     };
 
-    const analyzeData = (imageFile) => {
+    const handleAnalyze = async () => {
         setIsScanning(true);
+        setScanProgress(20);
 
-        // --- BACKEND INTEGRATION POINT ---
-        // TODO: Create a FormData object.
-        // formData.append('image', imageFile);
-        // formData.append('questionnaire', JSON.stringify(answers));
-        // await axios.post('http://localhost:8080/api/ai/analyze', formData)
+        try {
+            const token = getCleanToken();
+            if (!token) throw new Error("No token found");
 
-        // Simulated Progress & Backend Response
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 15;
-            setScanProgress(progress);
-            if (progress >= 100) {
-                clearInterval(interval);
+            const payload = {
+                bodyPart: bodyPart,
+                answers: answers
+            };
 
-                // Simulated Spring Boot Response based on questionnaire logic
-                let suggestion = 'Natural';
-                if (answers.concern.includes('Acne')) suggestion = 'Chemical';
-                if (answers.concern.includes('Texture') || answers.exposure.includes('High')) suggestion = 'Ayurvedic';
+            setScanProgress(50);
 
-                setAiResults({
-                    healthScore: 78,
-                    suggestedPath: suggestion,
-                    markers: {
-                        acne: answers.concern.includes('Acne') ? 'High' : 'Low',
-                        pigment: answers.exposure.includes('High') ? 'Moderate' : 'Minimal',
-                        texture: answers.feel.includes('Dry') ? 'Dehydrated' : 'Balanced'
-                    }
-                });
+            const res = await axios.post('http://localhost:8080/api/v1/analysis/analyze', payload, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
+            setScanProgress(90);
+
+            const parsedResults = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+
+            setAiResults(parsedResults);
+            setScanProgress(100);
+
+            setTimeout(() => {
                 setIsScanning(false);
-                setStep(2); // Move to Results
-            }
-        }, 400);
+                setStep(2);
+            }, 500);
+
+        } catch (error) {
+            console.error("Analysis Failed", error);
+            alert("AI Analysis failed. Your session may have expired.");
+            setIsScanning(false);
+        }
     };
 
     const handleNavigate = (pathId) => {
-        // Pass the chosen path and the AI data to the Routine Timeline!
         navigate('/timeline', { state: { path: pathId, isDark } });
     };
 
@@ -80,17 +100,17 @@ export default function ScannerHub({ isDark }) {
 
             <main className="flex-1 flex items-center justify-center p-6 relative z-10 mt-16">
                 <div className="max-w-6xl w-full">
-                    {step === 0 && (
-                        <Questionnaire isDark={isDark} answers={answers} setAnswers={setAnswers} onNext={() => setStep(1)} />
-                    )}
-
+                    {step === 0 && <BodyPartSelector isDark={isDark} onSelect={handleBodyPartSelect} />}
                     {step === 1 && !isScanning && (
-                        <ImageCapture isDark={isDark} image={image} handleImageUpload={handleImageUpload} />
+                        <Questionnaire
+                            isDark={isDark}
+                            questions={questions}
+                            answers={answers}
+                            setAnswers={setAnswers}
+                            onSubmit={handleAnalyze}
+                        />
                     )}
-
-                    {step === 2 && (
-                        <ResultsDashboard isDark={isDark} aiResults={aiResults} handleNavigate={handleNavigate} />
-                    )}
+                    {step === 2 && <ResultsDashboard isDark={isDark} aiResults={aiResults} handleNavigate={handleNavigate} />}
                 </div>
             </main>
         </div>
