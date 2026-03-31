@@ -9,7 +9,7 @@ export default function OAuth2RedirectHandler({ onLoginSuccess }) {
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const token = params.get('token');
-        const isNewUser = params.get('new') === 'true'; // <--- CATCH THE STEP 2 FLAG
+        const isNewUser = params.get('new') === 'true';
         const error = params.get('error');
 
         if (token) {
@@ -31,8 +31,10 @@ export default function OAuth2RedirectHandler({ onLoginSuccess }) {
                     picture: `https://ui-avatars.com/api/?name=${decoded.sub}&background=10b981&color=fff`
                 };
 
-                localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-                if (onLoginSuccess) onLoginSuccess(sessionUser);
+                // No longer setting localStorage here since handleLoginSuccess does it securely
+                if (onLoginSuccess) {
+                    onLoginSuccess(sessionUser);
+                }
 
                 // LOGIC: If new Google user, go to Step 2. Otherwise, go to Dashboard.
                 if (isNewUser) {
@@ -54,7 +56,8 @@ export default function OAuth2RedirectHandler({ onLoginSuccess }) {
         } else {
             navigate('/?error=' + (error || 'OAuth2Failed'));
         }
-    }, [navigate, location, onLoginSuccess]);
+        // FIX: Only track the exact string (location.search) instead of the whole object
+    }, [navigate, location.search, onLoginSuccess]);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] text-emerald-500">

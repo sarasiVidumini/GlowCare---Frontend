@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 
 import Navbar from './components/layout/Navbar';
@@ -9,10 +9,7 @@ function App() {
     const [isDark, setIsDark] = useState(false);
     const [user, setUser] = useState(null);
 
-    // No more isSignInOpen state needed!
-
     useEffect(() => {
-        // FIX 1: Matched the localStorage key to 'currentUser' (what your auth forms use)
         const loggedInUser = localStorage.getItem('currentUser');
         if (loggedInUser) {
             try {
@@ -25,18 +22,26 @@ function App() {
 
     const toggleTheme = () => setIsDark(!isDark);
 
-    const handleLoginSuccess = (userData) => {
-        console.log("Logged in User: ", userData);
-        setUser(userData);
-        // Ensure state and storage are perfectly synced
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-    };
+    // FIX: useCallback caches this function so it never changes its memory address.
+    // The state updater (prev) acts as a guard clause to physically break the loop!
+    const handleLoginSuccess = useCallback((userData) => {
+        setUser((prevUser) => {
+            // Guard Clause: If the user is already set, do NOTHING to stop the render loop
+            if (prevUser?.email === userData.email) {
+                return prevUser;
+            }
+
+            console.log("Logged in User: ", userData);
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            return userData;
+        });
+    }, []);
 
     const handleLogout = () => {
         setUser(null);
         localStorage.removeItem('currentUser');
-        localStorage.removeItem('jwt_token'); // FIX 2: Added token cleanup on logout!
-        window.location.href = '/'; // Force redirect to home to clear any protected states
+        localStorage.removeItem('jwt_token');
+        window.location.href = '/';
     };
 
     return (
@@ -53,7 +58,6 @@ function App() {
                     toggleTheme={toggleTheme}
                     user={user}
                     onLogout={handleLogout}
-                    // FIX 3: Removed onSignInClick prop (Navbar uses its own router now)
                 />
 
                 <main className="flex-grow">
@@ -62,7 +66,6 @@ function App() {
                         toggleTheme={toggleTheme}
                         onLoginSuccess={handleLoginSuccess}
                         user={user}
-                        // FIX 4: Removed all modal state props being passed down
                     />
                 </main>
 
