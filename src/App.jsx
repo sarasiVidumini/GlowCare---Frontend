@@ -9,28 +9,31 @@ function App() {
     const [isDark, setIsDark] = useState(false);
     const [user, setUser] = useState(null);
 
+    // 1. ADD THIS: A loading state to prevent premature routing
+    const [isAuthReady, setIsAuthReady] = useState(false);
+
+    // 2. MOVE INITIALIZATION HERE: Check storage before releasing the app
     useEffect(() => {
-        const loggedInUser = localStorage.getItem('currentUser');
-        if (loggedInUser) {
+        const saved = localStorage.getItem('currentUser');
+        if (saved) {
             try {
-                setUser(JSON.parse(loggedInUser));
+                setUser(JSON.parse(saved));
             } catch (error) {
                 console.error("Failed to parse user session");
+                setUser(null);
             }
         }
+        // We have checked storage. The app is now safe to render routes!
+        setIsAuthReady(true);
     }, []);
 
     const toggleTheme = () => setIsDark(!isDark);
 
-    // FIX: useCallback caches this function so it never changes its memory address.
-    // The state updater (prev) acts as a guard clause to physically break the loop!
     const handleLoginSuccess = useCallback((userData) => {
         setUser((prevUser) => {
-            // Guard Clause: If the user is already set, do NOTHING to stop the render loop
             if (prevUser?.email === userData.email) {
                 return prevUser;
             }
-
             console.log("Logged in User: ", userData);
             localStorage.setItem('currentUser', JSON.stringify(userData));
             return userData;
@@ -43,6 +46,12 @@ function App() {
         localStorage.removeItem('jwt_token');
         window.location.href = '/';
     };
+
+    // 3. THE GUARD CLAUSE: Show nothing (or a spinner) until auth is checked
+    if (!isAuthReady) {
+        // You can replace this with a nice full-screen loading spinner later!
+        return <div className={`min-h-screen ${isDark ? 'bg-[#050505]' : 'bg-[#FBFBFD]'}`} />;
+    }
 
     return (
         <Router>

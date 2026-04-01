@@ -4,6 +4,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 export default function ProtectedRoute({ user, requireAdmin = false, children }) {
     const location = useLocation();
 
+    console.log(user);
+
     // 1. Security Check: Is the user logged in?
     if (!user) {
         // Redirect to sign-in, saving where they were trying to go so we can send them back later!
