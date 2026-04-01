@@ -39,8 +39,6 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
             <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler onLoginSuccess={onLoginSuccess} />} />
             <Route path="/prediction" element={<SkinPrediction isDark={isDark} />} />
 
-            {/* 🚀 MOVED TO PUBLIC: Anyone can view the directory, but the form blocks booking if not logged in! */}
-            <Route path="/appointments" element={<AppointmentHub isDark={isDark} />} />
 
             {/* ========================================= */}
             {/* --- PROTECTED USER ROUTES --- */}
@@ -51,9 +49,9 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
                 </ProtectedRoute>
             } />
 
-            <Route path="/analysis" element={
+            <Route path="/appointments" element={
                 <ProtectedRoute user={user}>
-                    <Route path="/appointments" element={<AppointmentHub isDark={isDark} />} />
+                    <AppointmentHub isDark={isDark} toggleTheme={toggleTheme} user={user} />
                 </ProtectedRoute>
             } />
 
