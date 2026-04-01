@@ -51,6 +51,12 @@ export default function AppRoutes({ isDark, toggleTheme, onLoginSuccess, user })
                 </ProtectedRoute>
             } />
 
+            <Route path="/analysis" element={
+                <ProtectedRoute user={user}>
+                    <Route path="/appointments" element={<AppointmentHub isDark={isDark} />} />
+                </ProtectedRoute>
+            } />
+
             <Route path="/timeline" element={
                 <ProtectedRoute user={user}>
                     <RoutineTimelinePage isDark={isDark} toggleTheme={toggleTheme} user={user} />
