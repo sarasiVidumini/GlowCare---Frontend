@@ -1,4 +1,5 @@
 import api from '../../../api/api.js';
+import axios from "axios";
 
 export const routineService = {
     getAllSteps: async () => {
@@ -20,5 +21,18 @@ export const routineService = {
     },
     deleteStep: async (id) => {
         await api.delete(`/routines/${id}`);
+    },
+
+    checkConflict: async (newProduct, timeOfDay, pathCategory, zone) => {
+        const token = localStorage.getItem('jwt_token');
+        const response = await axios.post('http://localhost:8080/api/v1/smart-engine/check-conflict', {
+            newProduct,
+            timeOfDay,
+            pathCategory,
+            zone
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
     }
 };

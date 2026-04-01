@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import FallingLeaves from '../../components/ui/FallingLeaves';
 import { INITIAL_DB } from './utils/routineData';
-import { CONFLICT_RULES } from './utils/conflictRules';
 import RoutineHeader from './components/RoutineHeader';
 import RoutineSidebar from './components/RoutineSidebar';
 import RoutineList from './components/RoutineList';
 import SmartEngineModals from './components/SmartEngineModal.jsx';
 import CommunityChatModals from './components/CommunityChatModals';
 import ExpertConsultModals from './components/ExpertConsultModals';
-
-// 🚀 ALARM OVERLAY
 import RoutineAlarmOverlay from './components/RoutineAlarmOverlay';
 
 import { routineService } from './api/routineService.js';
@@ -30,13 +27,15 @@ export default function RoutineHub({ isDark }) {
     const [modal, setModal] = useState({ open: false, type: 'add', id: null, value: "", stepTime: "" });
     const [notifEnabled, setNotifEnabled] = useState(false);
 
-    // 🚀 RAW Database Set & Calculated Next Routine
     const [allRoutines, setAllRoutines] = useState([]);
     const [nextRoutine, setNextRoutine] = useState(null);
 
     const [showExpertsModal, setShowExpertsModal] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [privateChat, setPrivateChat] = useState({ open: false, expert: null });
+
+    const [isScanning, setIsScanning] = useState(false);
+    const [conflictData, setConflictData] = useState(null);
 
     // ==========================================
     // 🧠 THE GLOBAL TIME ENGINE
@@ -53,7 +52,6 @@ export default function RoutineHub({ isDark }) {
         allRoutines.forEach(step => {
             if (step.scheduledTime) {
                 try {
-                    // Clean and parse "07:00 AM"
                     const timeString = step.scheduledTime.trim();
                     const ampmMatch = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
                     const militaryMatch = timeString.match(/(\d+):(\d+)/);
@@ -70,23 +68,21 @@ export default function RoutineHub({ isDark }) {
                         hours = parseInt(militaryMatch[1]);
                         mins = parseInt(militaryMatch[2]);
                     } else {
-                        return; // Invalid format
+                        return;
                     }
 
                     let stepDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, mins, 0, 0);
 
-                    // If time has passed today, schedule it for tomorrow
                     if (stepDate.getTime() <= now.getTime()) {
                         stepDate.setDate(stepDate.getDate() + 1);
                     }
 
-                    // 🚀 CRITICAL FIX: Explicitly map database properties to UI properties
                     upcoming.push({
                         ...step,
-                        name: step.productName,        // Mapped for UI
-                        stepTime: step.scheduledTime,  // Mapped for UI
-                        path: step.pathCategory,       // Mapped for UI
-                        dateObj: stepDate              // Mathematical Time
+                        name: step.productName,
+                        stepTime: step.scheduledTime,
+                        path: step.pathCategory,
+                        dateObj: stepDate
                     });
                 } catch (err) {
                     console.warn("⚠️ Skipping invalid time in DB:", step.scheduledTime);
@@ -94,27 +90,17 @@ export default function RoutineHub({ isDark }) {
             }
         });
 
-        // Sort by closest absolute time
         upcoming.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-
-        if (upcoming.length > 0) {
-            setNextRoutine(upcoming[0]);
-        } else {
-            setNextRoutine(null);
-        }
+        setNextRoutine(upcoming.length > 0 ? upcoming[0] : null);
     }, [allRoutines]);
 
     // ==========================================
     // DATABASE FETCH & SYNC
     // ==========================================
-    useEffect(() => {
-        fetchDataFromDB();
-    }, []);
-
-    const fetchDataFromDB = async () => {
+    const fetchDataFromDB = useCallback(async () => {
         try {
             const apiData = await routineService.getAllSteps();
-            setAllRoutines(apiData); // 🚀 This instantly triggers the Time Engine!
+            setAllRoutines(apiData);
 
             const newDb = JSON.parse(JSON.stringify(INITIAL_DB));
             Object.keys(newDb).forEach(pCat => {
@@ -141,8 +127,13 @@ export default function RoutineHub({ isDark }) {
         } catch (error) {
             console.error("Failed to load from database", error);
         }
-    };
+    }, []);
 
+    useEffect(() => { fetchDataFromDB(); }, [fetchDataFromDB]);
+
+    // ==========================================
+    // ACTUAL DATABASE SAVE FUNCTION
+    // ==========================================
     const confirmSave = async (prodName) => {
         const payload = {
             productName: prodName,
@@ -153,14 +144,53 @@ export default function RoutineHub({ isDark }) {
         };
 
         try {
-            if (modal.type === 'add') await routineService.createStep(payload);
-            else await routineService.updateStep(modal.id, payload);
+            if (modal.type === 'add') {
+                await routineService.createStep(payload);
+            } else {
+                await routineService.updateStep(modal.id, payload);
+            }
 
-            // 🚀 Fetch instantly to update the Next Routine Notification at the top
             await fetchDataFromDB();
             setModal({ open: false, type: 'add', id: null, value: "", stepTime: "" });
+            setConflictData(null);
         } catch (error) {
             alert("Database Error.");
+        }
+    };
+
+    // ==========================================
+    // 🧠 AI SMART ENGINE INTEGRATION
+    // ==========================================
+    const saveProduct = async () => {
+        if (!isAdmin || isScanning) return;
+
+        setIsScanning(true);
+
+        try {
+            const result = await routineService.checkConflict(
+                modal.value,
+                time.toUpperCase(),
+                path,
+                part
+            );
+
+            setIsScanning(false);
+
+            // ALWAYS pass the data to the modal state so the Admin is forced to review the feedback
+            // This prevents immediate auto-saving and shows the Approval modal instead.
+            setConflictData({
+                original: result.original,
+                reason: result.reason || "This formula combination has been analyzed and appears safe to use.",
+                alternative: result.alternative,
+                hasConflict: result.hasConflict
+            });
+
+        } catch (error) {
+            setIsScanning(false);
+            console.error("Scanning failed", error);
+            if(window.confirm("Smart Engine is currently offline. Save formula without safety check?")) {
+                confirmSave(modal.value);
+            }
         }
     };
 
@@ -169,25 +199,7 @@ export default function RoutineHub({ isDark }) {
         try {
             await routineService.deleteStep(id);
             await fetchDataFromDB();
-        } catch (error) {
-            alert("Database Error.");
-        }
-    };
-
-    const [isScanning, setIsScanning] = useState(false);
-    const [conflictData, setConflictData] = useState(null);
-
-    const handleBellClick = () => {
-        setNotifEnabled(!notifEnabled);
-        if (!notifEnabled && "Notification" in window) Notification.requestPermission();
-    };
-
-    const saveProduct = async () => {
-        if (!isAdmin) return;
-        setIsScanning(true);
-        await new Promise(r => setTimeout(r, 1500));
-        setIsScanning(false);
-        confirmSave(modal.value);
+        } catch (error) { alert("Database Error."); }
     };
 
     const toggleDone = (pName) => {
@@ -197,19 +209,19 @@ export default function RoutineHub({ isDark }) {
         localStorage.setItem('done_tasks', JSON.stringify(newDone));
     };
 
+    const handleBellClick = () => {
+        setNotifEnabled(!notifEnabled);
+        if (!notifEnabled && "Notification" in window) Notification.requestPermission();
+    };
+
     const progress = (db[path]?.[part]?.[time] || []).length > 0
         ? Math.round(((db[path][part][time]).filter(item => done[`${path}-${part}-${time}-${item.name}`]).length / (db[path][part][time]).length) * 100)
         : 0;
 
     return (
         <div className={`min-h-screen p-4 lg:p-6 pt-12 relative overflow-hidden transition-all duration-700 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FBFBFD] text-slate-900'}`}>
-
-            {/* 🚀 THE REAL ALARM */}
             <RoutineAlarmOverlay isDark={isDark} nextRoutine={nextRoutine} />
-
             <FallingLeaves isDark={isDark} />
-
-            {/* 🚀 THE UPCOMING HEADER NOTIFICATION */}
             <RoutineHeader isDark={isDark} nextRoutine={nextRoutine} path={path} />
 
             <div className="max-w-[1200px] mx-auto grid grid-cols-12 gap-6 relative z-10">
