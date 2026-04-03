@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Activity, Leaf, Zap, ArrowRight, ThermometerSun } from 'lucide-react';
+import { Sparkles, Leaf, Zap, ArrowRight, ThermometerSun, MessageSquare, Phone, Send, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
 
 // --- SMART FLOATING LEAVES ---
 const FallingLeaves = ({ isDark }) => {
@@ -33,6 +34,68 @@ const FallingLeaves = ({ isDark }) => {
 
 export default function Home({ isDark }) {
     const navigate = useNavigate(); // Navigation
+
+    // State for the Community Feedback
+    const [review, setReview] = useState('');
+    const [isSendingReview, setIsSendingReview] = useState(false);
+    const [reviewSuccess, setReviewSuccess] = useState(false);
+
+    // State for the Nexus Contact
+    const [contact, setContact] = useState({ name: '', email: '', message: '' });
+    const [isSendingContact, setIsSendingContact] = useState(false);
+    const [contactSuccess, setContactSuccess] = useState(false);
+
+    // --- EMAILJS CONFIGURATION ---
+    // ⚠️ Replace these with your actual EmailJS credentials from emailjs.com
+    const EMAILJS_SERVICE_ID = 'service_u707wi9';
+    const EMAILJS_TEMPLATE_ID = 'template_qyiu90f';
+    const EMAILJS_PUBLIC_KEY = 'P2jFOSHTgcr-nPZZ4';
+
+    const handleReviewSubmit = (e) => {
+        e.preventDefault();
+        if (!review.trim()) return;
+
+        setIsSendingReview(true);
+
+        const templateParams = {
+            from_name: 'GlowCare User',
+            reply_to: 'No Email Provided',
+            message: review,
+            type: 'Community Feedback'
+        };
+
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY)
+            .then(() => {
+                setReviewSuccess(true);
+                setReview('');
+                setTimeout(() => setReviewSuccess(false), 5000);
+            })
+            .catch((err) => console.error('Failed to send review:', err))
+            .finally(() => setIsSendingReview(false));
+    };
+
+    const handleContactSubmit = (e) => {
+        e.preventDefault();
+        if (!contact.name || !contact.email || !contact.message) return;
+
+        setIsSendingContact(true);
+
+        const templateParams = {
+            from_name: contact.name,
+            reply_to: contact.email,
+            message: contact.message,
+            type: 'Nexus Contact Inquiry'
+        };
+
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY)
+            .then(() => {
+                setContactSuccess(true);
+                setContact({ name: '', email: '', message: '' });
+                setTimeout(() => setContactSuccess(false), 5000);
+            })
+            .catch((err) => console.error('Failed to send contact:', err))
+            .finally(() => setIsSendingContact(false));
+    };
 
     return (
         <div className={`relative min-h-screen transition-all duration-1000 selection:bg-emerald-500/30 ${isDark ? 'bg-[#050505] text-white' : 'bg-[#FAFAFA] text-slate-900'}`}>
@@ -115,6 +178,88 @@ export default function Home({ isDark }) {
                         <ArrowRight size={18} />
                     </div>
                 </button>
+            </section>
+
+            {/* --- NEW: INTERACTIVE FORMS SECTION --- */}
+            <section className="relative z-10 max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
+
+                {/* 1. Community Feedback (Comment Box) */}
+                <form onSubmit={handleReviewSubmit} className={`p-8 rounded-[35px] border transition-all hover:border-emerald-500/50 flex flex-col justify-between ${isDark ? 'bg-[#0E0E10] border-white/5 shadow-2xl' : 'bg-white border-slate-100 shadow-xl shadow-slate-200/30'}`}>
+                    <div>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                <MessageSquare size={18} />
+                            </div>
+                            <h3 className="text-xl font-extrabold tracking-tight">Community Feedback</h3>
+                        </div>
+                        <p className={`text-xs mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Share your GlowCare journey or leave a comment for our clinical team. Your insights improve our AI.
+                        </p>
+                        <textarea
+                            value={review}
+                            onChange={(e) => setReview(e.target.value)}
+                            required
+                            placeholder="Type your comment here..."
+                            className={`w-full h-32 p-4 rounded-2xl text-sm font-medium outline-none resize-none border transition-colors focus:border-emerald-500 ${isDark ? 'bg-black border-white/10 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                        ></textarea>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isSendingReview}
+                        className={`mt-4 w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors ${reviewSuccess ? 'bg-green-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'} ${isSendingReview ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        {isSendingReview ? 'Sending...' : reviewSuccess ? <><CheckCircle2 size={16} /> Sent!</> : <>Submit Feedback <Send size={16} /></>}
+                    </button>
+                </form>
+
+                {/* 2. Nexus Contact (Contact Box) */}
+                <form onSubmit={handleContactSubmit} className={`p-8 rounded-[35px] border transition-all hover:border-emerald-500/50 flex flex-col justify-between ${isDark ? 'bg-[#0E0E10] border-white/5 shadow-2xl' : 'bg-white border-slate-100 shadow-xl shadow-slate-200/30'}`}>
+                    <div>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                                <Phone size={18} />
+                            </div>
+                            <h3 className="text-xl font-extrabold tracking-tight">Nexus Contact</h3>
+                        </div>
+                        <p className={`text-xs mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Have questions about your clinical routine? Connect directly with our support nexus.
+                        </p>
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                required
+                                placeholder="Full Name"
+                                value={contact.name}
+                                onChange={(e) => setContact({...contact, name: e.target.value})}
+                                className={`w-full p-4 rounded-2xl text-sm font-medium outline-none border transition-colors focus:border-emerald-500 ${isDark ? 'bg-black border-white/10 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                            />
+                            <input
+                                type="email"
+                                required
+                                placeholder="Email Address"
+                                value={contact.email}
+                                onChange={(e) => setContact({...contact, email: e.target.value})}
+                                className={`w-full p-4 rounded-2xl text-sm font-medium outline-none border transition-colors focus:border-emerald-500 ${isDark ? 'bg-black border-white/10 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                            />
+                            {/* ADDED MISSING MESSAGE TEXTAREA */}
+                            <textarea
+                                required
+                                placeholder="How can we help you?"
+                                value={contact.message}
+                                onChange={(e) => setContact({...contact, message: e.target.value})}
+                                className={`w-full h-24 p-4 rounded-2xl text-sm font-medium outline-none resize-none border transition-colors focus:border-emerald-500 ${isDark ? 'bg-black border-white/10 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                            ></textarea>
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isSendingContact}
+                        className={`mt-6 w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors ${contactSuccess ? 'bg-green-500 text-white' : isDark ? 'bg-white text-black hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'} ${isSendingContact ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        {isSendingContact ? 'Sending...' : contactSuccess ? <><CheckCircle2 size={16} /> Message Sent!</> : 'Send Message'}
+                    </button>
+                </form>
+
             </section>
         </div>
     );
