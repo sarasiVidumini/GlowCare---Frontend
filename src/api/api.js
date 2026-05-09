@@ -1,11 +1,21 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // FIXED: We keep /api/v1 here so all your services can just use clean paths like '/experts' or '/routines'
     baseURL: 'http://localhost:8080/api/v1',
     headers: {
         'Content-Type': 'application/json'
     }
+});
+
+api.interceptors.request.use((config) => {
+
+    const token = localStorage.getItem('jwt_token');
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
 });
 
 // Automatically attach the JWT token to every request

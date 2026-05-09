@@ -7,22 +7,16 @@ export const authService = {
      */
     register: async (userData) => {
         try {
-            // Spring Boot expects the Role to be Uppercase (EXPERT/CLIENT)
             const response = await api.post('/auth/register', userData);
 
-            // If successful, returns AuthResponse: { token, name, email, role }
-            return response.data;
-        } catch (error) {
-            // Detailed logging for debugging 400 Bad Request errors
-            console.error("Registration Trace:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                payloadSent: userData
-            });
+            localStorage.setItem("jwt_token", response.data.token);
+            localStorage.setItem("currentUser", JSON.stringify(response.data));
 
-            // Extract specific error message from Backend (e.g., "Email already exists")
-            const errorMessage = error.response?.data?.message || 'Registration failed. Please verify clinical details.';
-            throw new Error(errorMessage);
+            return response.data;
+
+        } catch (error) {
+            console.error("Registration Trace:", error.response?.data);
+            throw new Error(error.response?.data?.message || 'Registration failed');
         }
     },
 
@@ -32,11 +26,15 @@ export const authService = {
     login: async (credentials) => {
         try {
             const response = await api.post('/auth/login', credentials);
+
+            localStorage.setItem("jwt_token", response.data.token);
+            localStorage.setItem("currentUser", JSON.stringify(response.data));
+
             return response.data;
+
         } catch (error) {
             console.error("Login Trace:", error.response?.data);
-            const errorMessage = error.response?.data?.message || 'Invalid email or password';
-            throw new Error(errorMessage);
+            throw new Error(error.response?.data?.message || 'Invalid email or password');
         }
     },
 

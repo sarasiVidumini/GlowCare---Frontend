@@ -64,13 +64,21 @@ export default function PrivateChatModal({ isDark, privateChat, setPrivateChat, 
     };
 
     const handleVerifyAndJoin = async () => {
-        if (!joinName.trim() || !targetExpertId) {
-            setVerifyError("System Error: Cannot resolve Expert Identity. Please refresh.");
+
+        if (!joinName?.trim()) {
+            setVerifyError("Please enter your username.");
             return;
         }
 
-        if (!getAuthToken()) {
-            setVerifyError("Your session has expired. Please log out and log back in.");
+        if (!targetExpertId) {
+            setVerifyError("Cannot resolve Expert Identity.");
+            return;
+        }
+
+        const token = getAuthToken();
+
+        if (!token) {
+            setVerifyError("Session expired. Please login again.");
             return;
         }
 
@@ -78,23 +86,43 @@ export default function PrivateChatModal({ isDark, privateChat, setPrivateChat, 
         setVerifyError("");
 
         try {
-            const res = await axios.get(`http://localhost:8080/api/v1/private-chat/verify?name=${joinName}`, {
-                headers: getAuthHeader()
-            });
+
+            console.log("Verifying user:", joinName);
+
+            const res = await axios.get(
+                `http://localhost:8080/api/v1/private-chat/verify`,
+                {
+                    params: {
+                        name: joinName.trim()
+                    },
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            console.log("Verify response:", res.data);
 
             if (!['CLIENT', 'EXPERT', 'ADMIN'].includes(res.data.role)) {
-                setVerifyError("Unauthorized role for private consultation.");
+                setVerifyError("Unauthorized role.");
                 return;
             }
 
             setVerifiedUser(res.data);
             setIsVerified(true);
+
         } catch (error) {
-            if (error.response?.status === 401 || error.response?.status === 403) {
-                setVerifyError("Access Denied. Your session may have expired.");
+
+            console.error(error);
+
+            if (error.response) {
+                setVerifyError(
+                    error.response.data || "Verification failed."
+                );
             } else {
-                setVerifyError("User not found in the database. Check spelling.");
+                setVerifyError("Server connection failed.");
             }
+
         } finally {
             setIsVerifying(false);
         }
