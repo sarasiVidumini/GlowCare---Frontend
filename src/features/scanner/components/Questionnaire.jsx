@@ -10,14 +10,18 @@ export default function Questionnaire({ isDark, questions, answers, setAnswers, 
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
-            <div className="text-center mb-10">
-                <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tight">Digital <span className="text-emerald-500">Assessment.</span></h1>
+        /* -mt-10 pulls the content up, pt-0 removes top padding */
+        <div className="max-w-2xl mx-auto -mt-10 pt-0 pb-12 space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
+
+            {/* Header Section - Adjusted margins and spacing */}
+            <div className="text-center mb-6">
+                <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tight leading-none">
+                    Digital <span className="text-emerald-500">Assessment.</span>
+                </h1>
             </div>
 
             <div className="space-y-6">
                 {questions.map((question) => {
-                    // Parse options if they come as a JSON string from backend
                     const optionsArray = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
 
                     return (
